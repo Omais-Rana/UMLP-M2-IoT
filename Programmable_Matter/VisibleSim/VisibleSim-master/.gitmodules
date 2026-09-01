@@ -1,3 +1,0 @@
-[submodule "utilities/configGenerator"]
-	path = utilities/configGenerator
-	url = git@github.com:nazandre/VisibleSimConfigGenerator.git
