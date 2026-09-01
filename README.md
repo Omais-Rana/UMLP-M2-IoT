@@ -14,5 +14,5 @@ It includes:
 
 ## Coursework
 
-- Distributed Programming for Modular Robots
+- Distributed Programming for Modular Robots / Programmable Matter
   - [Benoit Piranda](https://benoitpiranda.fr/#/education#distributedAlgorithms) (VisibleSim)
