@@ -42,7 +42,6 @@ IF (WIN32)
 
     IF (MINGW)
         message(STATUS "+MinGW")
-
         ##########################################################
         ######Change Paths to match your library installation#####
         ##########################################################
@@ -603,6 +602,10 @@ install(TARGETS e2_goback RUNTIME DESTINATION applicationsBin/e2_goback)
 add_executable(e3_lightpath applicationsSrc/e3_lightpath/e3_lightpath.cpp applicationsSrc/e3_lightpath/e3_lightpathCode.cpp)
 target_link_libraries(e3_lightpath -lBlinkyBlocks -lfreeglut -lmuparser -lOpenGL32 -lglu32 -lglew32d) #
 install(TARGETS e3_lightpath RUNTIME DESTINATION applicationsBin/e3_lightpath)
+
+add_executable(tpApp1 applicationsSrc/tpApp1/tpApp1.cpp applicationsSrc/tpApp1/tpApp1Code.cpp)
+target_link_libraries(tpApp1 -lBlinkyBlocks -lfreeglut -lmuparser -lOpenGL32 -lglu32 -lglew32d)
+install(TARGETS tpApp1 RUNTIME DESTINATION applicationsBin/tpApp1)
 
 #################################################################################
 ############################ REPLAYER ###########################################
