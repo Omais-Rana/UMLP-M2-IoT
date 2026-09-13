@@ -1,0 +1,32 @@
+<?xml version="1.0" standalone="no" ?>
+<vs>
+    <visuals>
+        <window size="1284,701" backgroundColor="#FFFF00" gradientColor="#FFFF00" />
+        <window shadow="on" grid="on" />
+    </visuals>
+    <world gridSize="10,10,10">
+        <camera target="199.988,200.036,102.593" thetaPhiDist="18.1285,21.9786,902.528" fov="35" near="75" far="1504" />
+        <spotlight target="200,200,102.5" thetaPhiDist="60,30,902.528" fov="33" />
+        <blockList>
+            <block position="1,1,0" color="#0000FF" />
+            <block position="2,1,0" color="#00FFFF" />
+            <block position="3,1,0" color="#0000FF" />
+            <block position="4,1,0" color="#00FFFF" />
+            <block position="5,1,0" color="#00FF00" />
+            <block position="2,2,0" color="#00FF00" />
+            <block position="5,2,0" color="#FFFF00" />
+            <block position="2,3,0" color="#FFFF00" />
+            <block position="3,3,0" color="#FFA500" />
+            <block position="4,3,0" color="#FF0000" />
+            <block position="5,3,0" color="#FFA500" />
+            <block position="2,3,1" color="#00FF00" />
+            <block position="5,3,1" color="#FFFF00" />
+            <block position="2,3,2" color="#00FFFF" />
+            <block position="5,3,2" color="#00FF00" />
+            <block position="2,3,3" color="#0000FF" />
+            <block position="3,3,3" color="#FFFFFF" />
+            <block position="4,3,3" color="#0000FF" />
+            <block position="5,3,3" color="#00FFFF" />
+        </blockList>
+    </world>
+</vs>

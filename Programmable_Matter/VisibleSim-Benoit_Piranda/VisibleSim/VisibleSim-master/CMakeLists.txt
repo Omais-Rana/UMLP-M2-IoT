@@ -607,6 +607,10 @@ add_executable(tpApp1 applicationsSrc/tpApp1/tpApp1.cpp applicationsSrc/tpApp1/t
 target_link_libraries(tpApp1 -lBlinkyBlocks -lfreeglut -lmuparser -lOpenGL32 -lglu32 -lglew32d)
 install(TARGETS tpApp1 RUNTIME DESTINATION applicationsBin/tpApp1)
 
+add_executable(tpApp2 applicationsSrc/tpApp2/tpApp2.cpp applicationsSrc/tpApp2/tpApp2Code.cpp)
+target_link_libraries(tpApp2 -lBlinkyBlocks -lfreeglut -lmuparser -lOpenGL32 -lglu32 -lglew32d)
+install(TARGETS tpApp2 RUNTIME DESTINATION applicationsBin/tpApp2)
+
 #################################################################################
 ############################ REPLAYER ###########################################
 #################################################################################

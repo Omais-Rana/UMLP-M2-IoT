@@ -1,0 +1,12 @@
+<vs>
+    <visuals>
+        <window size="1280x720" backgroundColor="#4d4dd0"/>
+        <render shadows="on" grid="on"/>
+    </visuals>
+    <world gridSize="80,40,40">
+        <blockList>
+            <csg offset="false" boundingBox="false" content=" scale([3,3,3]) translate([10,0,0]) color([0.4,0.4,0.4]) union() { translate([-6,6,3]) sphere(4); translate([6,6,3]) sphere(4); translate([-6,6,3]) rotate([0,90,0]) cylinder(12,1.5,1.5); }"/>
+            <block position="12,18,22" isA="true" color="255,0,0"/>
+        </blockList>
+    </world>
+</vs>
