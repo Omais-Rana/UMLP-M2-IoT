@@ -611,6 +611,11 @@ add_executable(tpApp2 applicationsSrc/tpApp2/tpApp2.cpp applicationsSrc/tpApp2/t
 target_link_libraries(tpApp2 -lBlinkyBlocks -lfreeglut -lmuparser -lOpenGL32 -lglu32 -lglew32d)
 install(TARGETS tpApp2 RUNTIME DESTINATION applicationsBin/tpApp2)
 
+add_executable(tpAppMotion applicationsSrc/tpAppMotion/tpAppMotion.cpp applicationsSrc/tpAppMotion/tpAppMotionCode.cpp applicationsSrc/tpAppMotion/tpAppMotionCode.hpp
+        applicationsSrc/tpAppMotion/tpAppMotionCode.hpp)
+target_link_libraries(tpAppMotion -lSlidingCubes -lfreeglut -lmuparser -lOpenGL32 -lglu32 -lglew32d)
+install(TARGETS tpAppMotion RUNTIME DESTINATION applicationsBin/tpAppMotion)
+
 #################################################################################
 ############################ REPLAYER ###########################################
 #################################################################################

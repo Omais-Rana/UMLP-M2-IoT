@@ -1,0 +1,23 @@
+<?xml version="1.0" standalone="no" ?>
+<vs>
+    <visuals>
+        <window size="1000x900" backgroundColor="#4d4dd0" />
+        <render shadows="on" grid="on"/>
+    </visuals>
+    <goal position="3,5,0"/>
+    <world gridSize="5,10,3" >
+        <camera target="50,30,17" thetaPhiDist="60,10,80" fov="45"/>
+        <spotlight target="100,10,80" thetaPhiDist="60,45,80" fov="25"/>
+
+        <blockList color="128,128,128" >
+            <block position="1,1,0" orientation="1" leader="true"/>
+            <block position="1,2,0" orientation="4" />
+            <block position="1,3,0" orientation="16" />
+            <block position="1,4,0" orientation="14" />
+            <block position="0,6,0" orientation="3" color="blue" obstacle="true" />
+            <block position="1,6,0" orientation="5" color="blue" obstacle="true" />
+            <block position="2,6,0" orientation="1" color="blue" obstacle="true" />
+
+        </blockList>
+    </world>
+</vs>
