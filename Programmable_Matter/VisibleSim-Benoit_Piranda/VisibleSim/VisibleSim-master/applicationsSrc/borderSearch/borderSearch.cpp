@@ -6,7 +6,7 @@ using namespace BlinkyBlocks;
 
 int main(int argc, char **argv) {
     try {
-        createSimulator(argc, argv, BorderCode::buildNewBlockCode);
+        createSimulator(argc, argv, BorderSearchCode::buildNewBlockCode);
         getSimulator()->printInfo();
         BaseSimulator::getWorld()->printInfo();
         deleteSimulator();

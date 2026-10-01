@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<world gridSize="20,20,2" windowSize="1800,900">
+    <blockList color="127,127,127" size="1,1,1" blockSize="40,40,41">
+        <!-- Top Head Arc -->
+        <block position="6,15,0"/><block position="7,15,0"/><block position="8,15,0"/><block position="9,15,0"/><block position="10,15,0"/><block position="11,15,0"/>
+        <block position="4,14,0"/><block position="5,14,0"/><block position="6,14,0"/><block position="7,14,0"/><block position="8,14,0"/><block position="9,14,0"/><block position="10,14,0"/><block position="11,14,0"/><block position="12,14,0"/><block position="13,14,0"/>
+        <block position="3,13,0"/><block position="4,13,0"/><block position="5,13,0"/><block position="6,13,0"/><block position="7,13,0"/><block position="8,13,0"/><block position="9,13,0"/><block position="10,13,0"/><block position="11,13,0"/><block position="12,13,0"/><block position="13,13,0"/><block position="14,13,0"/>
+        <!-- Upper Face / Forehead -->
+        <block position="2,12,0"/><block position="3,12,0"/><block position="4,12,0"/><block position="5,12,0"/><block position="6,12,0"/><block position="7,12,0"/><block position="8,12,0"/><block position="9,12,0"/><block position="10,12,0"/><block position="11,12,0"/><block position="12,12,0"/><block position="13,12,0"/><block position="14,12,0"/><block position="15,12,0"/>
+        <!-- Eye Level (Holes at positions 5,6 and 11,12 create two distinct eyes) -->
+        <block position="2,11,0"/><block position="3,11,0"/><block position="4,11,0"/>
+        <!-- Left Eye Space -->
+        <block position="7,11,0"/><block position="8,11,0"/><block position="9,11,0"/><block position="10,11,0"/>
+        <!-- Right Eye Space -->
+        <block position="13,11,0"/><block position="14,11,0"/><block position="15,11,0"/>
+        <block position="2,10,0"/><block position="3,10,0"/><block position="4,10,0"/>
+        <!-- Left Eye Space -->
+        <block position="7,10,0"/><block position="8,10,0"/><block position="9,10,0"/><block position="10,10,0"/>
+        <!-- Right Eye Space -->
+        <block position="13,10,0"/><block position="14,10,0"/><block position="15,10,0"/>
+        <!-- Mid-Face / Cheeks -->
+        <block position="1,9,0"/><block position="2,9,0"/><block position="3,9,0"/><block position="4,9,0"/><block position="5,9,0"/><block position="6,9,0"/><block position="7,9,0"/><block position="8,9,0"/><block position="9,9,0"/><block position="10,9,0"/><block position="11,9,0"/><block position="12,9,0"/><block position="13,9,0"/><block position="14,9,0"/><block position="15,9,0"/><block position="16,9,0"/>
+        <!-- Smile Level (Hollow curve between cheeks) -->
+        <block position="1,8,0"/><block position="2,8,0"/><block position="3,8,0"/><block position="4,8,0"/><block position="5,8,0"/>
+        <!-- Smile Cutout -->
+        <block position="12,8,0"/><block position="13,8,0"/><block position="14,8,0"/><block position="15,8,0"/><block position="16,8,0"/>
+        <block position="2,7,0"/><block position="3,7,0"/><block position="4,7,0"/>
+        <!-- Smile Cutout -->
+        <block position="13,7,0"/><block position="14,7,0"/><block position="15,7,0"/>
+        <!-- Smile Bottom Curve -->
+        <block position="2,6,0"/><block position="3,6,0"/><block position="4,6,0"/><block position="5,6,0"/><block position="6,6,0"/><block position="7,6,0"/><block position="8,6,0"/><block position="9,6,0"/><block position="10,6,0"/><block position="11,6,0"/><block position="12,6,0"/><block position="13,6,0"/><block position="14,6,0"/><block position="15,6,0"/>
+        <!-- Bottom Chin Arc -->
+        <block position="3,5,0"/><block position="4,5,0"/><block position="5,5,0"/><block position="6,5,0"/><block position="7,5,0"/><block position="8,5,0"/><block position="9,5,0"/><block position="10,5,0"/><block position="11,5,0"/><block position="12,5,0"/><block position="13,5,0"/><block position="14,5,0"/>
+        <block position="4,4,0"/><block position="5,4,0"/><block position="6,4,0"/><block position="7,4,0"/><block position="8,4,0"/><block position="9,4,0"/><block position="10,4,0"/><block position="11,4,0"/><block position="12,4,0"/><block position="13,4,0"/>
+        <block position="6,3,0"/><block position="7,3,0"/><block position="8,3,0"/><block position="9,3,0"/><block position="10,3,0"/><block position="11,3,0"/>
+    </blockList>
+</world>
