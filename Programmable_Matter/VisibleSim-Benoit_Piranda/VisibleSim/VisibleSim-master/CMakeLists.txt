@@ -621,6 +621,11 @@ add_executable(tpAppMotion2 applicationsSrc/tpAppMotion2/tpAppMotion2.cpp applic
 target_link_libraries(tpAppMotion2 -lSlidingCubes -lfreeglut -lmuparser -lOpenGL32 -lglu32 -lglew32d)
 install(TARGETS tpAppMotion2 RUNTIME DESTINATION applicationsBin/tpAppMotion2)
 
+add_executable(borderSearch applicationsSrc/borderSearch/borderSearch.cpp applicationsSrc/borderSearch/borderSearchCode.cpp applicationsSrc/borderSearch/borderSearchCode.hpp
+        applicationsSrc/borderSearch/borderSearchCode.hpp)
+target_link_libraries(borderSearch -lBlinkyBlocks -lfreeglut -lmuparser -lOpenGL32 -lglu32 -lglew32d)
+install(TARGETS borderSearch RUNTIME DESTINATION applicationsBin/borderSearch)
+
 #################################################################################
 ############################ REPLAYER ###########################################
 #################################################################################
