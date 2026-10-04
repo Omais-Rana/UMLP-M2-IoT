@@ -1,4 +1,5 @@
 <vs>
+    <!-- Faulty config -->
     <visuals>
         <window size="1280x720" backgroundColor="#4d4dd0"/>
         <render shadows="on" grid="on"/>

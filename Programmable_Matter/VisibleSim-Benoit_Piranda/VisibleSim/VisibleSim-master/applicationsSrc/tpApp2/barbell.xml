@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<vs>
+    <visuals>
+        <window size="1800,900" backgroundColor="#4D4DD0"/>
+        <render shadows="on" grid="on"/>
+    </visuals>
+    <world gridSize="30,10,2">
+        <camera target="12,4,0" directionSpherical="-706,46,902" angle="35" near="75" far="1504"/>
+        <blockList blockSize="40,40,41" color="127,127,127">
+            <!-- 7x7 Dense Cluster (High Mass) -->
+            <block position="1,1,0"/><block position="2,1,0"/><block position="3,1,0"/><block position="4,1,0"/><block position="5,1,0"/><block position="6,1,0"/><block position="7,1,0"/>
+            <block position="1,2,0"/><block position="2,2,0"/><block position="3,2,0"/><block position="4,2,0"/><block position="5,2,0"/><block position="6,2,0"/><block position="7,2,0"/>
+            <block position="1,3,0"/><block position="2,3,0"/><block position="3,3,0"/><block position="4,3,0"/><block position="5,3,0"/><block position="6,3,0"/><block position="7,3,0"/>
+            <block position="1,4,0"/><block position="2,4,0"/><block position="3,4,0"/><block position="4,4,0"/><block position="5,4,0"/><block position="6,4,0"/><block position="7,4,0"/>
+            <block position="1,5,0"/><block position="2,5,0"/><block position="3,5,0"/><block position="4,5,0"/><block position="5,5,0"/><block position="6,5,0"/><block position="7,5,0"/>
+            <block position="1,6,0"/><block position="2,6,0"/><block position="3,6,0"/><block position="4,6,0"/><block position="5,6,0"/><block position="6,6,0"/><block position="7,6,0"/>
+            <block position="1,7,0"/><block position="2,7,0"/><block position="3,7,0"/><block position="4,7,0"/><block position="5,7,0"/><block position="6,7,0"/><block position="7,7,0"/>
+
+            <!-- Long Thin Bridge (High Topological Distance, Low Mass) -->
+            <block position="8,4,0"/>
+            <block position="9,4,0"/>
+            <block position="10,4,0"/>
+            <block position="11,4,0"/>
+            <block position="12,4,0"/>
+            <block position="13,4,0"/>
+            <block position="14,4,0"/>
+            <block position="15,4,0"/>
+            <block position="16,4,0"/>
+            <block position="17,4,0"/>
+            <block position="18,4,0"/>
+            <block position="19,4,0"/>
+            <block position="20,4,0"/>
+            <block position="21,4,0"/>
+            <block position="22,4,0"/>
+            <!-- Initiator Block A at the far right extremity -->
+            <block position="23,4,0" isA="true" color="255,0,0"/>
+        </blockList>
+    </world>
+</vs>
