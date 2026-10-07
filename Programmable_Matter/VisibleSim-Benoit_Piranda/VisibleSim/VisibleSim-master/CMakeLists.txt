@@ -616,10 +616,10 @@ add_executable(tpAppMotion applicationsSrc/tpAppMotion/tpAppMotion.cpp applicati
 target_link_libraries(tpAppMotion -lSlidingCubes -lfreeglut -lmuparser -lOpenGL32 -lglu32 -lglew32d)
 install(TARGETS tpAppMotion RUNTIME DESTINATION applicationsBin/tpAppMotion)
 
-add_executable(tpAppMotion2 applicationsSrc/tpAppMotion2/tpAppMotion2.cpp applicationsSrc/tpAppMotion2/tpAppMotion2Code.cpp applicationsSrc/tpAppMotion2/tpAppMotion2Code.hpp
-        applicationsSrc/tpAppMotion2/tpAppMotion2Code.hpp)
-target_link_libraries(tpAppMotion2 -lSlidingCubes -lfreeglut -lmuparser -lOpenGL32 -lglu32 -lglew32d)
-install(TARGETS tpAppMotion2 RUNTIME DESTINATION applicationsBin/tpAppMotion2)
+add_executable(SlidingCube applicationsSrc/SlidingCube/SlidingCube.cpp applicationsSrc/SlidingCube/SlidingCubeCode.cpp applicationsSrc/SlidingCube/SlidingCubeCode.hpp
+        applicationsSrc/SlidingCube/SlidingCubeCode.hpp)
+target_link_libraries(SlidingCube -lSlidingCubes -lfreeglut -lmuparser -lOpenGL32 -lglu32 -lglew32d)
+install(TARGETS SlidingCube RUNTIME DESTINATION applicationsBin/SlidingCube)
 
 add_executable(borderSearch applicationsSrc/borderSearch/borderSearch.cpp applicationsSrc/borderSearch/borderSearchCode.cpp applicationsSrc/borderSearch/borderSearchCode.hpp
         applicationsSrc/borderSearch/borderSearchCode.hpp)

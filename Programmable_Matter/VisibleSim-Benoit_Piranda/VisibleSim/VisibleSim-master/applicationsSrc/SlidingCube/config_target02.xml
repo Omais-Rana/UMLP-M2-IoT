@@ -1,0 +1,50 @@
+<?xml version="1.0" standalone="no" ?>
+<vs>
+    <visuals>
+        <window size="1000x900" backgroundColor="#4d4dd0" />
+        <render shadows="on" grid="on"/>
+    </visuals>
+    <world gridSize="8,11,5">
+        <camera target="44.6383,26.4902,16.5385" thetaPhiDist="148.236,37.502,120" fov="45" near="1" far="1500" />
+        <spotlight target="100,10,80" thetaPhiDist="60,45,80" fov="83" />
+        <blockList>
+            <block position="3,1,0" color="#808080" leader="true" />
+            <block position="3,2,0" color="#808080" />
+            <block position="3,3,0" color="#808080" />
+            <block position="3,4,0" color="#808080" />
+            <block position="4,1,0" color="#808080" />
+            <block position="4,2,0" color="#808080" />
+            <block position="4,3,0" color="#808080" />
+            <block position="4,4,0" color="#808080" />
+            <block position="3,1,1" color="#808080" />
+            <block position="3,2,1" color="#808080" />
+            <block position="3,3,1" color="#808080" />
+            <block position="3,4,1" color="#808080" />
+            <block position="4,4,1" color="#808080" />
+            <block position="4,3,1" color="#808080" />
+            <block position="4,2,1" color="#808080" />
+            <block position="4,1,1" color="#808080" />
+        </blockList>
+
+        <targetList>
+            <target format="grid">
+                <cell position="2,4,0"/>
+                <cell position="3,4,0"/>
+                <cell position="4,4,0"/>
+                <cell position="5,4,0"/>
+                <cell position="2,5,0"/>
+                <cell position="5,5,0"/>
+                <cell position="2,6,0"/>
+                <cell position="5,6,0"/>
+                <cell position="2,7,0"/>
+                <cell position="5,7,0"/>
+                <cell position="2,8,0"/>
+                <cell position="5,8,0"/>
+                <cell position="2,9,0"/>
+                <cell position="3,9,0"/>
+                <cell position="4,9,0"/>
+                <cell position="5,9,0"/>
+            </target>
+        </targetList>
+    </world>
+</vs>
