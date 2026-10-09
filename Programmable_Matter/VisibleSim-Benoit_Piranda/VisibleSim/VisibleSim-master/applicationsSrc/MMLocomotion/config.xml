@@ -1,0 +1,61 @@
+<?xml version="1.0" standalone="no" ?>
+<vs>
+    <visuals>
+        <window size="1800x900" backgroundColor="#4d4dd0"/>
+        <render shadows="on" grid="on"/>
+    </visuals>
+    <world gridSize="60,40,40" windowSize="1800,900">
+        <camera target="100.142,206.974,45.0787" directionSpherical="-371.483,3.96508,380" angle="35.000000" near="75.000000" far="1500.000000"/>
+        <spotlight target="200,200,100" directionSpherical="60,30,900" angle="39.805571"/>
+        <blockList blockSize="10,10,10">
+            <block position="4,4,2" color="0,255,0" orientation="0"/>
+            <block position="5,4,2" color="0,255,0" orientation="0"/>
+            <block position="5,4,3" color="0,255,0" orientation="0"/>
+            <block position="6,5,4" color="0,255,0" orientation="0"/>
+            <block position="5,4,5" color="0,255,0" orientation="0"/>
+            <block position="5,4,6" color="0,255,0" orientation="0"/>
+            <block position="4,4,6" color="0,255,0" orientation="0"/>
+            <block position="3,3,5" color="0,255,0" orientation="0"/>
+            <block position="3,3,4" color="0,255,0" orientation="0"/>
+            <block position="3,3,3" color="0,255,0" orientation="0"/>
+            <block position="8,4,2" color="255,255,255" orientation="0"/>
+            <block position="9,4,2" color="255,255,255" orientation="0"/>
+            <block position="9,3,3" color="255,255,255" orientation="0"/>
+            <block position="10,3,4" color="255,255,255" orientation="0"/>
+            <block position="9,3,5" color="255,255,255" orientation="0"/>
+            <block position="9,4,6" color="255,255,255" orientation="0"/>
+            <block position="8,4,6" color="255,255,255" orientation="0"/>
+            <block position="7,4,5" color="255,255,255" orientation="0"/>
+            <block position="7,5,4" color="255,255,255" orientation="0"/>
+            <block position="7,4,3" color="255,255,255" orientation="0"/>
+            <block position="12,4,2" color="255,165,0" orientation="0"/>
+            <block position="13,4,2" color="255,165,0" orientation="0"/>
+            <block position="13,4,3" color="255,165,0" orientation="0"/>
+            <block position="14,5,4" color="255,165,0" orientation="0"/>
+            <block position="13,4,5" color="255,165,0" orientation="0"/>
+            <block position="13,4,6" color="255,165,0" orientation="0"/>
+            <block position="12,4,6" color="255,165,0" orientation="0"/>
+            <block position="11,3,5" color="255,165,0" orientation="0"/>
+            <block position="11,3,4" color="255,165,0" orientation="0"/>
+            <block position="11,3,3" color="255,165,0" orientation="0"/>
+            <block position="16,4,2" color="255,192,203" orientation="0"/>
+            <block position="17,4,2" color="255,192,203" orientation="0"/>
+            <block position="17,3,3" color="255,192,203" orientation="0"/>
+            <block position="18,3,4" color="255,192,203" orientation="0"/>
+            <block position="17,3,5" color="255,192,203" orientation="0"/>
+            <block position="17,4,6" color="255,192,203" orientation="0"/>
+            <block position="16,4,6" color="255,192,203" orientation="0"/>
+            <block position="15,4,5" color="255,192,203" orientation="0"/>
+            <block position="15,5,4" color="255,192,203" orientation="0"/>
+            <block position="15,4,3" color="255,192,203" orientation="0"/>
+            <block position="6,4,5" color="255,255,255" orientation="0"/>
+            <block position="6,4,3" color="255,255,255" orientation="0"/>
+            <block position="10,3,5" color="255,165,0" orientation="0"/>
+            <block position="10,3,3" color="255,165,0" orientation="0"/>
+            <block position="14,4,5" color="255,192,203" orientation="0"/>
+            <block position="14,4,3" color="255,192,203" orientation="0"/>
+            <block position="2,3,5" color="0,255,0" orientation="0"/>
+            <block position="2,3,3" color="0,255,0" orientation="0"/>
+        </blockList>
+    </world>
+</vs>

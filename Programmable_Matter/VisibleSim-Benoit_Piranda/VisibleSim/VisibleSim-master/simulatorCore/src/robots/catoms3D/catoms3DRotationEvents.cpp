@@ -17,8 +17,8 @@ using namespace Catoms3D;
 
 mt19937 Catoms3DRotation::rng = mt19937(std::random_device()());
 int DELTA = 3;
-uniform_int_distribution<std::mt19937::result_type>
-        Catoms3DRotation::randomAnimationDelay = uniform_int_distribution<std::mt19937::result_type>
+uniform_int_distribution<int>
+       Catoms3DRotation::randomAnimationDelay = uniform_int_distribution<int>
         (-(ANIMATION_DELAY / DELTA), ANIMATION_DELAY / DELTA);
 const int Catoms3DRotation::ANIMATION_DELAY = 400000;
 const int Catoms3DRotation::COM_DELAY = 0;//2000;

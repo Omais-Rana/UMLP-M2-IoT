@@ -36,7 +36,9 @@ IF (WIN32)
         include_directories(${FREEGLUT_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIRS} ${GLUT_INTERFACE_DIRS})
         link_directories(${FREEGLUT_LIBRARY_DIRS} ${OPENGL_LIBRARY_DIRS} ${GLUT_INTERFACE_LIB_DIRS})
         add_definitions(${FREEGLUT_DEFINITIONS} ${OPENGL_DEFINITIONS})
-        add_executable(${PROJECT_NAME} ${PROJECT_FILES})
+        add_executable(${PROJECT_NAME} ${PROJECT_FILES}
+                applicationsSrc/MMLocomotion/MMLocomotion.cpp
+                applicationsSrc/MMLocomotion/MMLocomotionCode.cpp)
         target_link_libraries(${PROJECT_NAME} ${FREEGLUT_LIBRARIES} ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} glutInterface.lib)
     ENDIF (MSVC)
 
@@ -625,6 +627,10 @@ add_executable(borderSearch applicationsSrc/borderSearch/borderSearch.cpp applic
         applicationsSrc/borderSearch/borderSearchCode.hpp)
 target_link_libraries(borderSearch -lBlinkyBlocks -lfreeglut -lmuparser -lOpenGL32 -lglu32 -lglew32d)
 install(TARGETS borderSearch RUNTIME DESTINATION applicationsBin/borderSearch)
+
+add_executable(MMLocomotion applicationsSrc/MMLocomotion/MMLocomotion.cpp applicationsSrc/MMLocomotion/MMLocomotionCode.cpp)
+    target_link_libraries(MMLocomotion -lCatoms3D -lfreeglut -lmuparser -lOpenGL32 -lglu32 -lglew32d)
+install(TARGETS MMLocomotion RUNTIME DESTINATION applicationsBin/MMLocomotion)
 
 #################################################################################
 ############################ REPLAYER ###########################################

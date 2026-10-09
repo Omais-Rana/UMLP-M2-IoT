@@ -23,7 +23,7 @@ namespace Catoms3D {
 
     class Catoms3DRotation {
         static std::mt19937 rng;
-        static uniform_int_distribution<mt19937::result_type> randomAnimationDelay;
+        static uniform_int_distribution<int> randomAnimationDelay;
     public:
         static const int ANIMATION_DELAY;
         static const int COM_DELAY;
