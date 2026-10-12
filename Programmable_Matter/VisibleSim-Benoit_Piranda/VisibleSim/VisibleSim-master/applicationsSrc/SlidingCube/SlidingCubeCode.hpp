@@ -42,11 +42,15 @@ private:
     static constexpr int MOVE_MESSAGE = 1001;
     static constexpr int RESULT_MESSAGE = 1002;
 
+    void restoreColor();
+
+    // Simulated delay so we can observe the blocks better
+    static constexpr uint64_t STEP_DELAY = 1000000;
+
     // Safety limit on the number of individual cube motions.
     static constexpr int MAX_MOTIONS = 500;
 
-    // Maximum number of times the leader may re-plan from the live
-    // configuration after a rejected motion.
+    // Maximum number of times the leader may re-plan
     static constexpr int MAX_REPLANS = 40;
 
     SlidingCubesBlock *module = nullptr;

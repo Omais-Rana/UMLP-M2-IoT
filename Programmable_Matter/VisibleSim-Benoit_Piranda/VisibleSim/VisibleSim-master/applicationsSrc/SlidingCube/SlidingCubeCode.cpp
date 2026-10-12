@@ -20,8 +20,7 @@ namespace
 {
     using GridPoint = std::array<int, 3>;
 
-    // Set while parsing the XML: true if at least one block has
-    // leader="true". Configs 01/02/03 have none.
+    // leader="true" check
     bool xmlHasExplicitLeader = false;
 
     struct AbstractRule
@@ -63,7 +62,7 @@ namespace
         return a[0] < b[0];
     }
 
-    // Compact key (coordinates are small, so one char each is enough).
+    // Compact key. Small coordinates so one char each is enough
     std::string abstractKey(const std::vector<GridPoint> &state)
     {
         std::string key;
@@ -85,7 +84,7 @@ namespace
         );
     }
 
-    // Optimal one-to-one assignment cost (Hungarian, O(n^3)).
+    // Optimal one-to-one assignment cost
     int assignmentCost(const std::vector<GridPoint> &pos,
                        const std::vector<GridPoint> &tgt)
     {
@@ -136,7 +135,7 @@ namespace
         return -v[0];
     }
 
-    // Face-connectivity of the whole set of cubes.
+    // Face connectivity of the whole set of cubes.
     bool isConnected(const std::vector<GridPoint> &state)
     {
         if (state.empty()) return true;
@@ -218,10 +217,17 @@ namespace
     }
 }
 
+void SlidingCubeCode::restoreColor()
+{
+    if (isLeader)
+        setColor(YELLOW);          // leader
+    else if (target && target->isInTarget(module->position))
+        setColor(GREEN);           // on-target cube
+    else
+        setColor(GREY);            // off-target cube
+}
 
-// ============================================================
-// CONSTRUCTOR
-// ============================================================
+// Main logic starts from here
 
 SlidingCubeCode::SlidingCubeCode(SlidingCubesBlock *host)
     : SlidingCubesBlockCode(host),
@@ -249,11 +255,6 @@ SlidingCubeCode::SlidingCubeCode(SlidingCubesBlock *host)
     );
 }
 
-
-// ============================================================
-// XML
-// ============================================================
-
 void SlidingCubeCode::parseUserElements(TiXmlDocument *config)
 {
 }
@@ -268,23 +269,17 @@ void SlidingCubeCode::parseUserBlockElements(TiXmlElement *config)
         xmlHasExplicitLeader = true;
 }
 
-
-// ============================================================
-// STARTUP
-// ============================================================
-
+// restoreColor() and startNextRound() here
 void SlidingCubeCode::startup()
 {
-    setColor(GREY);
-
-    if (target && target->isInTarget(module->position))
-        setColor(GREEN);
 
     if (!xmlHasExplicitLeader)
     {
         const std::vector<SlidingCubesBlock*> cubes = getAllCubes();
         isLeader = !cubes.empty() && cubes.front() == module;
     }
+
+    restoreColor();
 
     if (!isLeader)
         return;
@@ -327,11 +322,7 @@ void SlidingCubeCode::startup()
     startNextRound();
 }
 
-
-// ============================================================
-// GET TARGET CELLS
-// ============================================================
-
+// Get target positions
 std::vector<Cell3DPosition> SlidingCubeCode::getTargetCells() const
 {
     std::vector<Cell3DPosition> targets;
@@ -362,11 +353,7 @@ bool SlidingCubeCode::targetsAreFloorOnly() const
     return true;
 }
 
-
-// ============================================================
-// GET ALL CUBES (sorted by z, y, x)
-// ============================================================
-
+// Scans the grid for blocks, collects them, and sorts them by z, y, x. It reads the live state of the world, which is how the leader sees everything
 std::vector<SlidingCubesBlock*> SlidingCubeCode::getAllCubes() const
 {
     std::vector<SlidingCubesBlock*> cubes;
@@ -402,11 +389,7 @@ std::vector<SlidingCubesBlock*> SlidingCubeCode::getAllCubes() const
     return cubes;
 }
 
-
-// ============================================================
-// DISTANCES
-// ============================================================
-
+// The Chebyshev distance between two Cell3DPositions
 int SlidingCubeCode::distanceBetween(
     const Cell3DPosition &a,
     const Cell3DPosition &b
@@ -418,6 +401,7 @@ int SlidingCubeCode::distanceBetween(
     return std::max(dx, std::max(dy, dz));
 }
 
+// Converts positions and targets to GridPoints and returns the Hungarian cost
 int SlidingCubeCode::configurationDistance(
     const std::vector<Cell3DPosition> &positions
 ) const
@@ -434,11 +418,7 @@ int SlidingCubeCode::configurationDistance(
     return assignmentCost(p, t);
 }
 
-
-// ============================================================
-// KEYS
-// ============================================================
-
+// Build strings like "3,1,0->3,1,2". They are used for the forbidden-move set and for de-duplicating messages
 std::string SlidingCubeCode::makeMoveKey(
     const Cell3DPosition &from,
     const Cell3DPosition &to
@@ -463,11 +443,7 @@ std::string SlidingCubeCode::makeMoveTokenKey(
     return key.str();
 }
 
-
-// ============================================================
-// ABSTRACT MOVE GENERATION
-// ============================================================
-
+// Produces every legal next state from the given config
 std::vector<
     std::pair<std::vector<std::array<int, 3>>, PlannedMove>
 >
@@ -562,11 +538,7 @@ SlidingCubeCode::generateAbstractMoves(
     return result;
 }
 
-
-// ============================================================
-// PLANNER: weighted A* from the LIVE configuration
-// ============================================================
-
+// The game planner here. Runs weighted A* with the Hungarian cost as heuristic
 bool SlidingCubeCode::buildPlan()
 {
     plannedPath.clear();
@@ -726,11 +698,7 @@ bool SlidingCubeCode::buildPlan()
     return false;
 }
 
-
-// ============================================================
-// START NEXT ROUND
-// ============================================================
-
+// Leader’s main loop
 void SlidingCubeCode::startNextRound()
 {
     if (!isLeader || moving)
@@ -811,19 +779,16 @@ void SlidingCubeCode::startNextRound()
     }
 
     sendMessageToAllNeighbors(
-        "Calculated movement",
-        new MessageOf<MoveToken>(MOVE_MESSAGE, token),
-        1000,
-        0,
-        0
+    "Calculated movement",
+    new MessageOf<MoveToken>(MOVE_MESSAGE, token),
+    STEP_DELAY,   // was 1000
+    0,
+    0
     );
 }
 
 
-// ============================================================
-// RECEIVE MOVE
-// ============================================================
-
+// For each cube that gets a move message
 void SlidingCubeCode::receiveMove(
     std::shared_ptr<Message> message,
     P2PNetworkInterface *sender
@@ -856,11 +821,7 @@ void SlidingCubeCode::receiveMove(
     executeCalculatedMove();
 }
 
-
-// ============================================================
-// EXECUTE CALCULATED MOVE
-// ============================================================
-
+// Runs on the cube that must move
 void SlidingCubeCode::executeCalculatedMove()
 {
     if (moving)
@@ -915,11 +876,7 @@ void SlidingCubeCode::executeCalculatedMove()
     }
 }
 
-
-// ============================================================
-// MOTION END
-// ============================================================
-
+// Verifies the cube arrived at the expected cell, colors it green if it is on a target cell (grey otherwise), and calls sendResult(true)
 void SlidingCubeCode::onMotionEnd()
 {
     if (!moving)
@@ -938,21 +895,13 @@ void SlidingCubeCode::onMotionEnd()
     }
 
     std::cout << "MOTION FINISHED: " << movingFrom
-              << " -> " << module->position << std::endl;
+          << " -> " << module->position << std::endl;
 
-    if (target && target->isInTarget(module->position))
-        setColor(GREEN);
-    else
-        setColor(GREY);
-
+    restoreColor();
     sendResult(true);
 }
 
-
-// ============================================================
-// RESULT KEY
-// ============================================================
-
+// Packs sequence, x, y, z into one "long long" so duplicate results can be filtered.
 long long SlidingCubeCode::makeResultKey(
     int sequence,
     const Cell3DPosition &position
@@ -964,43 +913,38 @@ long long SlidingCubeCode::makeResultKey(
          + static_cast<long long>(position[2]);
 }
 
-
-// ============================================================
-// LEADER
-// ============================================================
-
-void SlidingCubeCode::handleResultAtLeader(const ResultToken &result)
+// De-duplicates, relays the result onward, and if this cube is the leader, passes it to handleResultAtLeader()
+void SlidingCubeCode::receiveResult(
+    std::shared_ptr<Message> message,
+    P2PNetworkInterface *sender
+)
 {
-    if (result.sequence != activeSequence)
+    const ResultToken result =
+        *std::static_pointer_cast<MessageOf<ResultToken>>(message)->getData();
+
+    const long long key = makeResultKey(result.sequence, result.from);
+
+    if (processedResults.find(key) != processedResults.end())
+        return;
+    processedResults.insert(key);
+
+    sendMessageToAllNeighbors(
+        "Relay movement result",
+        new MessageOf<ResultToken>(RESULT_MESSAGE, result),
+        1000,
+        0,
+        1,
+        sender
+    );
+
+    if (!isLeader)
         return;
 
-    activeSequence = -1;
-
-    if (result.success)
-    {
-        ++plannedPathIndex;
-        ++totalMotions;
-        std::cout << "Result OK for round " << result.sequence
-                  << " | total motions = " << totalMotions << std::endl;
-    }
-    else
-    {
-        std::cout << "Leader: move failed: " << result.from
-                  << " -> " << result.to << " (will re-plan)"
-                  << std::endl;
-        forbiddenMoves.insert(makeMoveKey(result.from, result.to));
-        planActive = false;
-    }
-
-    ++currentRound;
-    startNextRound();
+    handleResultAtLeader(result);
 }
 
 
-// ============================================================
-// SEND RESULT
-// ============================================================
-
+// If this cube is the leader, it processes the result directly. Otherwise it floods the result to its neighbors
 void SlidingCubeCode::sendResult(bool success)
 {
     ResultToken result;
@@ -1037,45 +981,35 @@ void SlidingCubeCode::sendResult(bool success)
     );
 }
 
-
-// ============================================================
-// RECEIVE RESULT
-// ============================================================
-
-void SlidingCubeCode::receiveResult(
-    std::shared_ptr<Message> message,
-    P2PNetworkInterface *sender
-)
+// Leader operations
+void SlidingCubeCode::handleResultAtLeader(const ResultToken &result)
 {
-    const ResultToken result =
-        *std::static_pointer_cast<MessageOf<ResultToken>>(message)->getData();
-
-    const long long key = makeResultKey(result.sequence, result.from);
-
-    if (processedResults.find(key) != processedResults.end())
-        return;
-    processedResults.insert(key);
-
-    sendMessageToAllNeighbors(
-        "Relay movement result",
-        new MessageOf<ResultToken>(RESULT_MESSAGE, result),
-        1000,
-        0,
-        1,
-        sender
-    );
-
-    if (!isLeader)
+    if (result.sequence != activeSequence)
         return;
 
-    handleResultAtLeader(result);
+    activeSequence = -1;
+
+    if (result.success)
+    {
+        ++plannedPathIndex;
+        ++totalMotions;
+        std::cout << "Result OK for round " << result.sequence
+                  << " | total motions = " << totalMotions << std::endl;
+    }
+    else
+    {
+        std::cout << "Leader: move failed: " << result.from
+                  << " -> " << result.to << " (will re-plan)"
+                  << std::endl;
+        forbiddenMoves.insert(makeMoveKey(result.from, result.to));
+        planActive = false;
+    }
+
+    ++currentRound;
+    startNextRound();
 }
 
-
-// ============================================================
-// TARGET COMPLETE?
-// ============================================================
-
+// TARGET COMPLETE? True if the cube count equals the target count and every target cell holds a cube
 bool SlidingCubeCode::targetComplete() const
 {
     if (!lattice || !target)
@@ -1093,11 +1027,6 @@ bool SlidingCubeCode::targetComplete() const
 
     return true;
 }
-
-
-// ============================================================
-// DRAWING CODE
-// ============================================================
 
 void SlidingCubeCode::onGlDraw()
 {

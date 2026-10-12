@@ -10,6 +10,9 @@ MMLocomotionCode::MMLocomotionCode(Catoms3DBlock *host)
     addMessageEventFunc2(MOVE_DONE_MSG_ID,
         std::bind(&MMLocomotionCode::onMoveDone, this,
                   std::placeholders::_1, std::placeholders::_2));
+    addMessageEventFunc2(MOVE_FAIL_MSG_ID,
+        std::bind(&MMLocomotionCode::onMoveFail, this,
+                  std::placeholders::_1, std::placeholders::_2));
 }
 
 /* ------------------------------------------------------------------ */
@@ -57,8 +60,9 @@ void MMLocomotionCode::startup() {
 
     // I am the root of the left-most meta-module -> coordinator
     isCoordinator = true;
-    srcRef = p;
-    srcShape = s;
+    chainRoots.push_back(p);
+    chainShapes.push_back(s);
+    slotShapes.push_back(s);
 
     // walk right along the chain to find the right-most meta-module
     Cell3DPosition last = p;
@@ -68,14 +72,16 @@ void MMLocomotionCode::startup() {
         if (!isComplete(next, opposite(lastShape))) break;
         last = next;
         lastShape = opposite(lastShape);
+        chainRoots.push_back(last);
+        chainShapes.push_back(lastShape);
+        slotShapes.push_back(lastShape);
     }
-    newRef = Cell3DPosition(last[0] + MM_SPACING_X, last[1], last[2]);
-    newShape = opposite(lastShape);                      // chain alternates FB / BF
 
-    console << "Coordinator: dismantle meta-module at " << srcRef
-            << ", rebuild at " << newRef << "\n";
+    console << "Coordinator: shifting " << chainRoots.size()
+            << " meta-modules in a zig-zag loop\n";
     setColor(RED);
     curIdx = 0;
+    buildCycleCommands();
     sendNextCommand();
 }
 
@@ -83,21 +89,86 @@ void MMLocomotionCode::startup() {
 /*  Coordinator: one module moves at a time                            */
 /* ------------------------------------------------------------------ */
 
+void MMLocomotionCode::buildCycleCommands() {
+    cycleCommands.clear();
+    curIdx = 0;
+    nextDispatchIdx = 0;
+    inFlight.clear();
+    completed.clear();
+
+    if (chainRoots.empty()) return;
+
+    const int direction = movingRight ? 1 : -1;
+    const int displacement =
+        static_cast<int>(chainRoots.size()) * MM_SPACING_X;
+    const int first = movingRight ? 0 : static_cast<int>(chainRoots.size()) - 1;
+    const int last = movingRight ? static_cast<int>(chainRoots.size()) : -1;
+    const int increment = movingRight ? 1 : -1;
+
+    // Each color advances by one complete chain length in the same direction.
+    // This keeps every destination ahead of the pink/green end instead of
+    // sending the following color into the slot just vacated.
+    for (int i = first; i != last; i += increment) {
+        Cell3DPosition destinationRoot(
+            chainRoots[i][0] + direction * displacement,
+            chainRoots[i][1], chainRoots[i][2]);
+        MMShape destinationShape = chainShapes[i];
+
+        const auto &sourcePositions = cellsOf(chainShapes[i]);
+        const auto &destinationPositions = cellsOf(destinationShape);
+        const bool movingModuleRight = destinationRoot[0] > chainRoots[i][0];
+        const int firstModule = movingModuleRight
+            ? 0
+            : static_cast<int>(sourcePositions.size()) - 1;
+        const int lastModule = movingModuleRight
+            ? static_cast<int>(sourcePositions.size())
+            : -1;
+        const int moduleStep = movingModuleRight ? 1 : -1;
+        for (int j = firstModule; j != lastModule; j += moduleStep) {
+            MoveCmd command;
+            command.seq = nextSeq++;
+            command.from = chainRoots[i] + sourcePositions[static_cast<size_t>(j)];
+            command.to = destinationRoot + destinationPositions[static_cast<size_t>(j)];
+            cycleCommands.push_back(command);
+        }
+    }
+}
+
 void MMLocomotionCode::sendNextCommand() {
-    if (curIdx >= 12) {
-        console << "Meta-module moved ^-^\n";
+    if (curIdx >= cycleCommands.size()) {
+        std::vector<Cell3DPosition> nextRoots;
+        nextRoots.reserve(chainRoots.size());
+        const int direction = movingRight ? 1 : -1;
+        const int displacement =
+            static_cast<int>(chainRoots.size()) * MM_SPACING_X;
+        for (const auto &root : chainRoots) {
+            nextRoots.push_back(Cell3DPosition(
+                root[0] + direction * displacement,
+                root[1], root[2]));
+        }
+        chainRoots = nextRoots;
+        buildCycleCommands();
+        sendNextCommand();
         return;
     }
-    MoveCmd c;
-    c.seq  = curIdx;
-    c.from = srcRef + cellsOf(srcShape)[curIdx];
-    c.to   = newRef + cellsOf(newShape)[curIdx];
 
-    seenCmd.insert(c.seq);
-    if (c.from == module->position) {
-        startMove(c);                                    // the coordinator itself must move
-    } else {
-        floodCmd(c, nullptr);
+    dispatchAvailableMoves();
+}
+
+void MMLocomotionCode::dispatchAvailableMoves() {
+    while (nextDispatchIdx < cycleCommands.size() && inFlight.size() < 2) {
+        const MoveCmd &c = cycleCommands[nextDispatchIdx++];
+        if (c.from == module->position && (moving || moveScheduled)) {
+            --nextDispatchIdx;
+            return;
+        }
+        inFlight.insert(c.seq);
+        seenCmd.insert(c.seq);
+        if (c.from == module->position) {
+            startMove(c, false);
+        } else {
+            floodCmd(c, nullptr);
+        }
     }
 }
 
@@ -115,14 +186,38 @@ void MMLocomotionCode::floodDone(const MoveDone &d, P2PNetworkInterface *except)
     }
 }
 
+void MMLocomotionCode::floodFail(const MoveFail &f, P2PNetworkInterface *except) {
+    for (P2PNetworkInterface *p2p : module->getP2PNetworkInterfaces()) {
+        if (p2p == except || !p2p->connectedInterface) continue;
+        sendMessage("moveFail", new MessageOf<MoveFail>(MOVE_FAIL_MSG_ID, f),
+                    p2p, 100, 10);
+    }
+}
+
 void MMLocomotionCode::onMoveCmd(std::shared_ptr<Message> msg, P2PNetworkInterface *sender) {
     MessageOf<MoveCmd> *m = static_cast<MessageOf<MoveCmd>*>(msg.get());
     MoveCmd c = *m->getData();
 
-    if (!seenCmd.insert(c.seq).second) return;           // already handled
-    floodCmd(c, sender);
+    if (seenCmd.insert(c.seq).second) {
+        floodCmd(c, sender);
+    }
 
-    if (module->position == c.from && !moving) startMove(c);
+    if (module->position == c.from) {
+        if (!moving && !moveScheduled) {
+            pendingMoves.erase(c.seq);
+            startMove(c, false);
+        } else {
+            pendingMoves[c.seq] = c;
+            getScheduler()->schedule(
+                new InterruptionEvent<MoveCmd>(
+                    getScheduler()->now() + 1000, module, c));
+        }
+    } else {
+        pendingMoves[c.seq] = c;
+        getScheduler()->schedule(
+            new InterruptionEvent<MoveCmd>(
+                getScheduler()->now() + 1000, module, c));
+    }
 }
 
 void MMLocomotionCode::onMoveDone(std::shared_ptr<Message> msg, P2PNetworkInterface *sender) {
@@ -132,8 +227,26 @@ void MMLocomotionCode::onMoveDone(std::shared_ptr<Message> msg, P2PNetworkInterf
     if (!seenDone.insert(d.seq).second) return;
     floodDone(d, sender);
 
-    if (isCoordinator && d.seq == curIdx) {
-        curIdx++;
+    if (isCoordinator && inFlight.erase(d.seq) > 0) {
+        completed.insert(d.seq);
+        while (curIdx < cycleCommands.size() &&
+               completed.erase(cycleCommands[curIdx].seq) > 0) {
+            curIdx++;
+        }
+        sendNextCommand();
+    }
+}
+
+void MMLocomotionCode::onMoveFail(std::shared_ptr<Message> msg,
+                                  P2PNetworkInterface *sender) {
+    MessageOf<MoveFail> *m = static_cast<MessageOf<MoveFail>*>(msg.get());
+    MoveFail f = *m->getData();
+    if (!seenFail.insert(f.seq).second) return;
+    floodFail(f, sender);
+
+    if (isCoordinator && curIdx < cycleCommands.size() &&
+        f.seq == cycleCommands[curIdx].seq) {
+        buildCycleCommands();
         sendNextCommand();
     }
 }
@@ -143,6 +256,22 @@ void MMLocomotionCode::onMoveDone(std::shared_ptr<Message> msg, P2PNetworkInterf
 /* ------------------------------------------------------------------ */
 
 void MMLocomotionCode::startMove(const MoveCmd &c) {
+    startMove(c, true);
+}
+
+void MMLocomotionCode::startMove(const MoveCmd &c, bool applyDelay) {
+    if (applyDelay) {
+        const int jitter = std::uniform_int_distribution<int>(0, 100)(
+            randomGenerator);
+        const int pairDelay = (c.seq % 2 == 0) ? 0 : 250;
+        moveScheduled = true;
+        getScheduler()->schedule(
+            new InterruptionEvent<MoveCmd>(
+                getScheduler()->now() + pairDelay + jitter, module, c));
+        return;
+    }
+
+    moveScheduled = false;
     moving = true;
     moveSeq = c.seq;
     goal = c.to;
@@ -151,7 +280,17 @@ void MMLocomotionCode::startMove(const MoveCmd &c) {
     path = findPath(start, goal);
     if (path.empty()) {
         console << "ERROR: no path from " << start << " to " << goal << "\n";
+        MoveFail f;
+        f.seq = c.seq;
+        seenFail.insert(c.seq);
+        floodFail(f, nullptr);
+        if (isCoordinator && curIdx < cycleCommands.size() &&
+            c.seq == cycleCommands[curIdx].seq) {
+            buildCycleCommands();
+            sendNextCommand();
+        }
         moving = false;
+        moveScheduled = false;
         return;
     }
     stepIdx = 0;
@@ -195,16 +334,41 @@ void MMLocomotionCode::onMotionEnd() {
 
 void MMLocomotionCode::finishMove() {
     moving = false;
+    moveScheduled = false;
     console << "module " << moveSeq << " placed at " << module->position << "\n";
 
     if (isCoordinator) {
-        curIdx++;
+        inFlight.erase(moveSeq);
+        completed.insert(moveSeq);
+        while (curIdx < cycleCommands.size() &&
+               completed.erase(cycleCommands[curIdx].seq) > 0) {
+            curIdx++;
+        }
         sendNextCommand();
     } else {
         MoveDone d;
         d.seq = moveSeq;
         seenDone.insert(d.seq);
         floodDone(d, nullptr);
+    }
+}
+
+void MMLocomotionCode::onInterruptionEvent(std::shared_ptr<Event> event) {
+    auto delayedMove = std::static_pointer_cast<InterruptionEvent<MoveCmd>>(event);
+    const MoveCmd &c = delayedMove->data;
+
+    if (moving) {
+        getScheduler()->schedule(
+            new InterruptionEvent<MoveCmd>(
+                getScheduler()->now() + 1000, module, c));
+    } else if (module->position == c.from) {
+        pendingMoves.erase(c.seq);
+        moveScheduled = false;
+        startMove(c, false);
+    } else if (pendingMoves.find(c.seq) != pendingMoves.end()) {
+        getScheduler()->schedule(
+            new InterruptionEvent<MoveCmd>(
+                getScheduler()->now() + 1000, module, c));
     }
 }
 
