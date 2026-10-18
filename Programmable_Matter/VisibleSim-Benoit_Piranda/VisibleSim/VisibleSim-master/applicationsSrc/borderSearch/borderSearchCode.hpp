@@ -3,6 +3,7 @@
 #include "robots/blinkyBlocks/blinkyBlocksSimulator.h"
 #include "robots/blinkyBlocks/blinkyBlocksWorld.h"
 #include "robots/blinkyBlocks/blinkyBlocksBlockCode.h"
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <vector>
@@ -12,11 +13,29 @@ public:
     enum Direction { FRONT=0, RIGHT=1, BACK=2, LEFT=3 };
 
     struct BorderSegment {
-        std::uint8_t direction;
-        std::uint16_t length;
-        BorderSegment() : direction(FRONT), length(0) {}
-        BorderSegment(int d, std::uint16_t l) : direction(static_cast<std::uint8_t>(d)), length(l) {}
+        enum { MAX_LENGTH = 64 };
+
+        std::uint8_t packed;
+
+        BorderSegment() : packed(0) {}
+        BorderSegment(int d, int len)   // len must be in 1..MAX_LENGTH
+            : packed(static_cast<std::uint8_t>(((d & 3) << 6) | ((len - 1) & 63))) {}
+
+        int direction() const { return packed >> 6; }
+        int length() const { return (packed & 63) + 1; }
     };
+    static_assert(sizeof(BorderSegment) == 1, "BorderSegment must stay one byte");
+
+    // splitting it into chunks of at most MAX_LENGTH.
+    static void appendSegment(std::vector<BorderSegment>& segments, int dir, std::uint16_t length) {
+        while (length > 0) {
+            const int chunk = length < static_cast<int>(BorderSegment::MAX_LENGTH)
+                                  ? static_cast<int>(length)
+                                  : static_cast<int>(BorderSegment::MAX_LENGTH);
+            segments.push_back(BorderSegment(dir, chunk));
+            length = static_cast<std::uint16_t>(length - chunk);
+        }
+    }
 
     struct BorderSearchData {
         int prevDir;

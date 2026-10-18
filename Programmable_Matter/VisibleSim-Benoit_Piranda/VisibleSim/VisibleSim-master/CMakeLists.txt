@@ -628,6 +628,11 @@ add_executable(borderSearch applicationsSrc/borderSearch/borderSearch.cpp applic
 target_link_libraries(borderSearch -lBlinkyBlocks -lfreeglut -lmuparser -lOpenGL32 -lglu32 -lglew32d)
 install(TARGETS borderSearch RUNTIME DESTINATION applicationsBin/borderSearch)
 
+add_executable(boxes applicationsSrc/boxes/boxes.cpp applicationsSrc/boxes/boxesCode.cpp applicationsSrc/boxes/boxesCode.hpp
+        applicationsSrc/boxes/boxesCode.hpp)
+target_link_libraries(boxes -lBlinkyBlocks -lfreeglut -lmuparser -lOpenGL32 -lglu32 -lglew32d)
+install(TARGETS boxes RUNTIME DESTINATION applicationsBin/boxes)
+
 add_executable(MMLocomotion applicationsSrc/MMLocomotion/MMLocomotion.cpp applicationsSrc/MMLocomotion/MMLocomotionCode.cpp)
     target_link_libraries(MMLocomotion -lCatoms3D -lfreeglut -lmuparser -lOpenGL32 -lglu32 -lglew32d)
 install(TARGETS MMLocomotion RUNTIME DESTINATION applicationsBin/MMLocomotion)

@@ -1,22 +1,19 @@
 #include "MMLocomotionCode.hpp"
 
+namespace {
+std::map<Cell3DPosition, int> g_reservedCells;
+}
+
 MMLocomotionCode::MMLocomotionCode(Catoms3DBlock *host)
     : Catoms3DBlockCode(host), module(host) {
     if (not host) return;
 
-    addMessageEventFunc2(MOVE_CMD_MSG_ID,
-        std::bind(&MMLocomotionCode::onMoveCmd, this,
-                  std::placeholders::_1, std::placeholders::_2));
-    addMessageEventFunc2(MOVE_DONE_MSG_ID,
-        std::bind(&MMLocomotionCode::onMoveDone, this,
-                  std::placeholders::_1, std::placeholders::_2));
-    addMessageEventFunc2(MOVE_FAIL_MSG_ID,
-        std::bind(&MMLocomotionCode::onMoveFail, this,
-                  std::placeholders::_1, std::placeholders::_2));
+    addMessageEventFunc2(TOKEN_MSG_ID, std::bind(&MMLocomotionCode::onMoveToken, this, std::placeholders::_1, std::placeholders::_2));
+    addMessageEventFunc2(RESET_MSG_ID, std::bind(&MMLocomotionCode::onCycleReset, this, std::placeholders::_1, std::placeholders::_2));
 }
 
 /* ------------------------------------------------------------------ */
-/*  Shape helpers                                                      */
+/*  Shape Helpers                                                     */
 /* ------------------------------------------------------------------ */
 
 const std::array<Cell3DPosition, 12>& MMLocomotionCode::cellsOf(MMShape s) {
@@ -27,7 +24,6 @@ MMShape MMLocomotionCode::opposite(MMShape s) {
     return (s == MMShape::FB) ? MMShape::BF : MMShape::FB;
 }
 
-// true if all 12 cells of a meta-module of shape s rooted at 'root' hold a module
 bool MMLocomotionCode::isComplete(const Cell3DPosition &root, MMShape s) {
     for (const auto &rel : cellsOf(s)) {
         Cell3DPosition p = root + rel;
@@ -36,348 +32,289 @@ bool MMLocomotionCode::isComplete(const Cell3DPosition &root, MMShape s) {
     return true;
 }
 
-// is p the root (0,0,0) of a complete meta-module? if so return its shape
 bool MMLocomotionCode::detectRoot(const Cell3DPosition &p, MMShape &s) {
     if (isComplete(p, MMShape::FB)) { s = MMShape::FB; return true; }
     if (isComplete(p, MMShape::BF)) { s = MMShape::BF; return true; }
     return false;
 }
 
+bool MMLocomotionCode::hasSupport(const Cell3DPosition &p) {
+    return !lattice->getActiveNeighborCells(p).empty();
+}
+
+int MMLocomotionCode::randomBetween(int lo, int hi) {
+    if (hi <= lo) return lo;
+    return std::uniform_int_distribution<int>(lo, hi)(randomGenerator);
+}
+
+int MMLocomotionCode::getArrIdx(int curIdx, bool movingRight) {
+    return movingRight ? curIdx : 11 - curIdx;
+}
+
 /* ------------------------------------------------------------------ */
-/*  Startup: the root of the left-most meta-module becomes coordinator */
+/*  Distributed Spatial Pipelining Logic                              */
 /* ------------------------------------------------------------------ */
 
 void MMLocomotionCode::startup() {
-    console << "start " << getId() << "\n";
+    checkInitiator(0, true);
+}
 
+void MMLocomotionCode::checkInitiator(int cycleSeq, bool movingRight) {
     MMShape s;
-    const Cell3DPosition p = module->position;
-    if (!detectRoot(p, s)) return;                       // not a meta-module root
+    if (!detectRoot(module->position, s)) return;
 
-    // is there a meta-module (of the opposite shape) on my left?  then I'm not left-most
-    Cell3DPosition left(p[0] - MM_SPACING_X, p[1], p[2]);
-    if (isComplete(left, opposite(s))) return;
+    int dir = movingRight ? 1 : -1;
+    Cell3DPosition back(module->position[0] - dir * MM_SPACING_X, module->position[1], module->position[2]);
+    if (isComplete(back, opposite(s))) return;
 
-    // I am the root of the left-most meta-module -> coordinator
-    isCoordinator = true;
-    chainRoots.push_back(p);
-    chainShapes.push_back(s);
-    slotShapes.push_back(s);
-
-    // walk right along the chain to find the right-most meta-module
-    Cell3DPosition last = p;
-    MMShape lastShape = s;
+    Cell3DPosition head = module->position;
+    MMShape headShape = s;
     while (true) {
-        Cell3DPosition next(last[0] + MM_SPACING_X, last[1], last[2]);
-        if (!isComplete(next, opposite(lastShape))) break;
-        last = next;
-        lastShape = opposite(lastShape);
-        chainRoots.push_back(last);
-        chainShapes.push_back(lastShape);
-        slotShapes.push_back(lastShape);
+        Cell3DPosition next(head[0] + dir * MM_SPACING_X, head[1], head[2]);
+        if (!isComplete(next, opposite(headShape))) break;
+        head = next;
+        headShape = opposite(headShape);
     }
 
-    console << "Coordinator: shifting " << chainRoots.size()
-            << " meta-modules in a zig-zag loop\n";
-    setColor(RED);
-    curIdx = 0;
-    buildCycleCommands();
-    sendNextCommand();
-}
+    Cell3DPosition newRef(head[0] + dir * MM_SPACING_X, head[1], head[2]);
+    MMShape newShape = opposite(headShape);
 
-/* ------------------------------------------------------------------ */
-/*  Coordinator: one module moves at a time                            */
-/* ------------------------------------------------------------------ */
-
-void MMLocomotionCode::buildCycleCommands() {
-    cycleCommands.clear();
-    curIdx = 0;
-    nextDispatchIdx = 0;
-    inFlight.clear();
-    completed.clear();
-
-    if (chainRoots.empty()) return;
-
-    const int direction = movingRight ? 1 : -1;
-    const int displacement =
-        static_cast<int>(chainRoots.size()) * MM_SPACING_X;
-    const int first = movingRight ? 0 : static_cast<int>(chainRoots.size()) - 1;
-    const int last = movingRight ? static_cast<int>(chainRoots.size()) : -1;
-    const int increment = movingRight ? 1 : -1;
-
-    // Each color advances by one complete chain length in the same direction.
-    // This keeps every destination ahead of the pink/green end instead of
-    // sending the following color into the slot just vacated.
-    for (int i = first; i != last; i += increment) {
-        Cell3DPosition destinationRoot(
-            chainRoots[i][0] + direction * displacement,
-            chainRoots[i][1], chainRoots[i][2]);
-        MMShape destinationShape = chainShapes[i];
-
-        const auto &sourcePositions = cellsOf(chainShapes[i]);
-        const auto &destinationPositions = cellsOf(destinationShape);
-        const bool movingModuleRight = destinationRoot[0] > chainRoots[i][0];
-        const int firstModule = movingModuleRight
-            ? 0
-            : static_cast<int>(sourcePositions.size()) - 1;
-        const int lastModule = movingModuleRight
-            ? static_cast<int>(sourcePositions.size())
-            : -1;
-        const int moduleStep = movingModuleRight ? 1 : -1;
-        for (int j = firstModule; j != lastModule; j += moduleStep) {
-            MoveCmd command;
-            command.seq = nextSeq++;
-            command.from = chainRoots[i] + sourcePositions[static_cast<size_t>(j)];
-            command.to = destinationRoot + destinationPositions[static_cast<size_t>(j)];
-            cycleCommands.push_back(command);
-        }
+    bool fits = true;
+    for (const auto &rel : cellsOf(newShape)) {
+        if (!lattice->isInGrid(newRef + rel)) { fits = false; break; }
     }
-}
 
-void MMLocomotionCode::sendNextCommand() {
-    if (curIdx >= cycleCommands.size()) {
-        std::vector<Cell3DPosition> nextRoots;
-        nextRoots.reserve(chainRoots.size());
-        const int direction = movingRight ? 1 : -1;
-        const int displacement =
-            static_cast<int>(chainRoots.size()) * MM_SPACING_X;
-        for (const auto &root : chainRoots) {
-            nextRoots.push_back(Cell3DPosition(
-                root[0] + direction * displacement,
-                root[1], root[2]));
+    if (!fits) {
+        MM_LOG("Grid border reached! Reversing chain direction.");
+        movingRight = !movingRight;
+        CycleReset cr = { cycleSeq + 1, movingRight };
+        seenResets.insert(cr.cycleSeq);
+        for (auto p2p : module->getP2PNetworkInterfaces()) {
+            if (p2p->connectedInterface) sendMessage("reset", new MessageOf<CycleReset>(RESET_MSG_ID, cr), p2p, 50, 10);
         }
-        chainRoots = nextRoots;
-        buildCycleCommands();
-        sendNextCommand();
+        checkInitiator(cr.cycleSeq, cr.movingRight);
         return;
     }
 
-    dispatchAvailableMoves();
-}
+    MoveToken t;
+    t.cycleSeq = cycleSeq;
+    t.curIdx = 0;
+    t.movingRight = movingRight;
+    t.srcRef = module->position;
+    t.newRef = newRef;
+    t.srcShape = s;
+    t.newShape = newShape;
 
-void MMLocomotionCode::dispatchAvailableMoves() {
-    while (nextDispatchIdx < cycleCommands.size() && inFlight.size() < 2) {
-        const MoveCmd &c = cycleCommands[nextDispatchIdx++];
-        if (c.from == module->position && (moving || moveScheduled)) {
-            --nextDispatchIdx;
-            return;
-        }
-        inFlight.insert(c.seq);
-        seenCmd.insert(c.seq);
-        if (c.from == module->position) {
-            startMove(c, false);
-        } else {
-            floodCmd(c, nullptr);
-        }
-    }
-}
+    int arrIdx = getArrIdx(t.curIdx, movingRight);
+    t.targetPos = t.srcRef + cellsOf(t.srcShape)[arrIdx];
+    t.goalPos = t.newRef + cellsOf(t.newShape)[arrIdx];
 
-void MMLocomotionCode::floodCmd(const MoveCmd &c, P2PNetworkInterface *except) {
-    for (P2PNetworkInterface *p2p : module->getP2PNetworkInterfaces()) {
-        if (p2p == except || !p2p->connectedInterface) continue;
-        sendMessage("moveCmd", new MessageOf<MoveCmd>(MOVE_CMD_MSG_ID, c), p2p, 100, 10);
-    }
-}
+    MM_LOG("Cycle " << cycleSeq << " Initiator: Dismantling " << t.srcRef << " -> " << t.newRef);
+    seenTokens.insert({t.cycleSeq, t.curIdx});
 
-void MMLocomotionCode::floodDone(const MoveDone &d, P2PNetworkInterface *except) {
-    for (P2PNetworkInterface *p2p : module->getP2PNetworkInterfaces()) {
-        if (p2p == except || !p2p->connectedInterface) continue;
-        sendMessage("moveDone", new MessageOf<MoveDone>(MOVE_DONE_MSG_ID, d), p2p, 100, 10);
-    }
-}
-
-void MMLocomotionCode::floodFail(const MoveFail &f, P2PNetworkInterface *except) {
-    for (P2PNetworkInterface *p2p : module->getP2PNetworkInterfaces()) {
-        if (p2p == except || !p2p->connectedInterface) continue;
-        sendMessage("moveFail", new MessageOf<MoveFail>(MOVE_FAIL_MSG_ID, f),
-                    p2p, 100, 10);
-    }
-}
-
-void MMLocomotionCode::onMoveCmd(std::shared_ptr<Message> msg, P2PNetworkInterface *sender) {
-    MessageOf<MoveCmd> *m = static_cast<MessageOf<MoveCmd>*>(msg.get());
-    MoveCmd c = *m->getData();
-
-    if (seenCmd.insert(c.seq).second) {
-        floodCmd(c, sender);
-    }
-
-    if (module->position == c.from) {
-        if (!moving && !moveScheduled) {
-            pendingMoves.erase(c.seq);
-            startMove(c, false);
-        } else {
-            pendingMoves[c.seq] = c;
-            getScheduler()->schedule(
-                new InterruptionEvent<MoveCmd>(
-                    getScheduler()->now() + 1000, module, c));
-        }
+    // We only send the token IF we aren't the target ourselves.
+    if (module->position == t.targetPos) {
+        executeToken(t);
     } else {
-        pendingMoves[c.seq] = c;
-        getScheduler()->schedule(
-            new InterruptionEvent<MoveCmd>(
-                getScheduler()->now() + 1000, module, c));
-    }
-}
-
-void MMLocomotionCode::onMoveDone(std::shared_ptr<Message> msg, P2PNetworkInterface *sender) {
-    MessageOf<MoveDone> *m = static_cast<MessageOf<MoveDone>*>(msg.get());
-    MoveDone d = *m->getData();
-
-    if (!seenDone.insert(d.seq).second) return;
-    floodDone(d, sender);
-
-    if (isCoordinator && inFlight.erase(d.seq) > 0) {
-        completed.insert(d.seq);
-        while (curIdx < cycleCommands.size() &&
-               completed.erase(cycleCommands[curIdx].seq) > 0) {
-            curIdx++;
+        for (auto p2p : module->getP2PNetworkInterfaces()) {
+            if (p2p->connectedInterface) sendMessage("token", new MessageOf<MoveToken>(TOKEN_MSG_ID, t), p2p, 50, 10);
         }
-        sendNextCommand();
     }
 }
 
-void MMLocomotionCode::onMoveFail(std::shared_ptr<Message> msg,
-                                  P2PNetworkInterface *sender) {
-    MessageOf<MoveFail> *m = static_cast<MessageOf<MoveFail>*>(msg.get());
-    MoveFail f = *m->getData();
-    if (!seenFail.insert(f.seq).second) return;
-    floodFail(f, sender);
+void MMLocomotionCode::onMoveToken(std::shared_ptr<Message> msg, P2PNetworkInterface *sender) {
+    MoveToken t = *static_cast<MessageOf<MoveToken>*>(msg.get())->getData();
 
-    if (isCoordinator && curIdx < cycleCommands.size() &&
-        f.seq == cycleCommands[curIdx].seq) {
-        buildCycleCommands();
-        sendNextCommand();
+    std::pair<int, int> tokenKey = {t.cycleSeq, t.curIdx};
+    if (seenTokens.count(tokenKey)) return;
+    seenTokens.insert(tokenKey);
+
+    for (auto p2p : module->getP2PNetworkInterfaces()) {
+        if (p2p != sender && p2p->connectedInterface) sendMessage("token", new MessageOf<MoveToken>(TOKEN_MSG_ID, t), p2p, 50, 10);
     }
+
+    if (module->position == t.targetPos && !moving) executeToken(t);
+}
+
+void MMLocomotionCode::onCycleReset(std::shared_ptr<Message> msg, P2PNetworkInterface *sender) {
+    CycleReset cr = *static_cast<MessageOf<CycleReset>*>(msg.get())->getData();
+    if (seenResets.count(cr.cycleSeq)) return;
+    seenResets.insert(cr.cycleSeq);
+
+    for (auto p2p : module->getP2PNetworkInterfaces()) {
+        if (p2p != sender && p2p->connectedInterface) sendMessage("reset", new MessageOf<CycleReset>(RESET_MSG_ID, cr), p2p, 50, 10);
+    }
+
+    seenTokens.clear();
+    checkInitiator(cr.cycleSeq, cr.movingRight);
 }
 
 /* ------------------------------------------------------------------ */
-/*  Mover: follow a BFS path with one rotation per step                */
+/*  Mover Execution & Conveyor Belt Logic                             */
 /* ------------------------------------------------------------------ */
 
-void MMLocomotionCode::startMove(const MoveCmd &c) {
-    startMove(c, true);
-}
-
-void MMLocomotionCode::startMove(const MoveCmd &c, bool applyDelay) {
-    if (applyDelay) {
-        const int jitter = std::uniform_int_distribution<int>(0, 100)(
-            randomGenerator);
-        const int pairDelay = (c.seq % 2 == 0) ? 0 : 250;
-        moveScheduled = true;
-        getScheduler()->schedule(
-            new InterruptionEvent<MoveCmd>(
-                getScheduler()->now() + pairDelay + jitter, module, c));
-        return;
-    }
-
-    moveScheduled = false;
+void MMLocomotionCode::executeToken(const MoveToken &t) {
+    myToken = t;
     moving = true;
-    moveSeq = c.seq;
-    goal = c.to;
+    tokenPassed = false;
+    goal = myToken.goalPos;
+    blockedCount = 0;
+    replanCount = 0;
 
-    Cell3DPosition start = module->position;
-    path = findPath(start, goal);
-    if (path.empty()) {
-        console << "ERROR: no path from " << start << " to " << goal << "\n";
-        MoveFail f;
-        f.seq = c.seq;
-        seenFail.insert(c.seq);
-        floodFail(f, nullptr);
-        if (isCoordinator && curIdx < cycleCommands.size() &&
-            c.seq == cycleCommands[curIdx].seq) {
-            buildCycleCommands();
-            sendNextCommand();
+    MM_LOG("catom " << getId() << " starting sequence " << myToken.curIdx);
+
+    TimerData td;
+    td.kind = TIMER_START_MOVE;
+    getScheduler()->schedule(new InterruptionEvent<TimerData>(getScheduler()->now() + randomBetween(0, START_JITTER_MAX), module, td));
+}
+
+void MMLocomotionCode::passTokenToNext() {
+    if (!tokenPassed && myToken.curIdx < 11) {
+        tokenPassed = true;
+        MoveToken nextT = myToken;
+        nextT.curIdx++;
+        int nextArrIdx = getArrIdx(nextT.curIdx, nextT.movingRight);
+        nextT.targetPos = nextT.srcRef + cellsOf(nextT.srcShape)[nextArrIdx];
+        nextT.goalPos = nextT.newRef + cellsOf(nextT.newShape)[nextArrIdx];
+
+        seenTokens.insert({nextT.cycleSeq, nextT.curIdx});
+        for (auto p2p : module->getP2PNetworkInterfaces()) {
+            if (p2p->connectedInterface) sendMessage("token", new MessageOf<MoveToken>(TOKEN_MSG_ID, nextT), p2p, 50, 10);
         }
-        moving = false;
-        moveScheduled = false;
+    }
+}
+
+void MMLocomotionCode::onInterruptionEvent(std::shared_ptr<Event> event) {
+    auto ev = std::static_pointer_cast<InterruptionEvent<TimerData>>(event);
+    TimerData t = ev->data;
+    switch (t.kind) {
+        case TIMER_START_MOVE: replan(); break;
+        case TIMER_STEP_RETRY: if (moving) scheduleStep(); break;
+        case TIMER_REPLAN:     if (moving) replan(); break;
+    }
+}
+
+void MMLocomotionCode::replan() {
+    blockedCount = 0;
+    path = findPath(module->position, goal);
+    stepIdx = 0;
+
+    if (path.empty()) {
+        retryLater("Waiting for kinematic clearance...");
         return;
     }
-    stepIdx = 0;
     scheduleStep();
 }
 
+void MMLocomotionCode::retryLater(const char *reason) {
+    TimerData t;
+    t.kind = TIMER_REPLAN;
+    getScheduler()->schedule(new InterruptionEvent<TimerData>(getScheduler()->now() + randomBetween(LOCAL_RETRY_MIN, LOCAL_RETRY_MAX), module, t));
+}
+
+void MMLocomotionCode::reserveCell(const Cell3DPosition &c) {
+    g_reservedCells[c] = static_cast<int>(getId());
+    reservedCell = c;
+    hasReservation = true;
+}
+
+void MMLocomotionCode::releaseReservation() {
+    if (!hasReservation) return;
+    auto it = g_reservedCells.find(reservedCell);
+    if (it != g_reservedCells.end() && it->second == static_cast<int>(getId())) {
+        g_reservedCells.erase(it);
+    }
+    hasReservation = false;
+}
+
 void MMLocomotionCode::scheduleStep() {
-    Cell3DPosition nextPosition = path[stepIdx];
-    getScheduler()->schedule(
-        new Catoms3DRotationStartEvent(getScheduler()->now() + 100, module, nextPosition));
+    if (stepIdx >= path.size()) {
+        replan();
+        return;
+    }
+    const Cell3DPosition next = path[stepIdx];
+
+    bool blocked = false;
+    if (lattice->getBlock(next)) blocked = true;
+    auto res = g_reservedCells.find(next);
+    if (res != g_reservedCells.end() && res->second != static_cast<int>(getId())) blocked = true;
+    if (!blocked && !module->canMoveTo(next)) blocked = true;
+
+    if (blocked) {
+        backoffOrReplan();
+        return;
+    }
+
+    blockedCount = 0;
+    reserveCell(next);
+    getScheduler()->schedule(new Catoms3DRotationStartEvent(getScheduler()->now() + 100 + randomBetween(0, STEP_JITTER_MAX), module, next));
+}
+
+void MMLocomotionCode::backoffOrReplan() {
+    if (++blockedCount <= MAX_BACKOFFS) {
+        TimerData t;
+        t.kind = TIMER_STEP_RETRY;
+        getScheduler()->schedule(new InterruptionEvent<TimerData>(getScheduler()->now() + randomBetween(BACKOFF_MIN, BACKOFF_MAX), module, t));
+        return;
+    }
+    blockedCount = 0;
+    retryLater("Path blocked during transit");
 }
 
 void MMLocomotionCode::onMotionEnd() {
+    releaseReservation();
     if (!moving) return;
+
+    // PIPELINE LOGIC: Once we have traveled SAFE_DEPARTURE_STEPS away from the source,
+    // we physically clear the departure zone. We safely invite the next node to begin.
+    if (!tokenPassed && (stepIdx >= SAFE_DEPARTURE_STEPS || stepIdx >= path.size() - 1)) {
+        passTokenToNext();
+    }
 
     if (module->position == goal) {
         finishMove();
         return;
     }
 
-    // normal case: we landed where the path said, go on with the next step
     if (stepIdx < path.size() && module->position == path[stepIdx]) {
         stepIdx++;
-        if (stepIdx < path.size() && module->canMoveTo(path[stepIdx])) {
+        blockedCount = 0;
+        replanCount = 0;
+        if (stepIdx < path.size()) {
             scheduleStep();
             return;
         }
-    }
-
-    // otherwise: replan from where we are
-    Cell3DPosition start = module->position;
-    path = findPath(start, goal);
-    stepIdx = 0;
-    if (path.empty()) {
-        console << "ERROR: lost, no path from " << start << " to " << goal << "\n";
-        moving = false;
+        replan();
         return;
     }
-    scheduleStep();
+
+    if (++replanCount > MAX_REPLANS) {
+        replanCount = 0;
+        retryLater("lost");
+        return;
+    }
+    replan();
 }
 
 void MMLocomotionCode::finishMove() {
     moving = false;
-    moveScheduled = false;
-    console << "module " << moveSeq << " placed at " << module->position << "\n";
+    MM_LOG("catom " << getId() << " successfully assembled at " << module->position);
 
-    if (isCoordinator) {
-        inFlight.erase(moveSeq);
-        completed.insert(moveSeq);
-        while (curIdx < cycleCommands.size() &&
-               completed.erase(cycleCommands[curIdx].seq) > 0) {
-            curIdx++;
+    // Failsafe: if the path was incredibly short, pass token upon completion
+    if (!tokenPassed) passTokenToNext();
+
+    if (myToken.curIdx == 11) {
+        CycleReset cr = { myToken.cycleSeq + 1, myToken.movingRight };
+        seenResets.insert(cr.cycleSeq);
+        for (auto p2p : module->getP2PNetworkInterfaces()) {
+            if (p2p->connectedInterface) sendMessage("reset", new MessageOf<CycleReset>(RESET_MSG_ID, cr), p2p, 50, 10);
         }
-        sendNextCommand();
-    } else {
-        MoveDone d;
-        d.seq = moveSeq;
-        seenDone.insert(d.seq);
-        floodDone(d, nullptr);
+        seenTokens.clear();
+        checkInitiator(cr.cycleSeq, cr.movingRight);
     }
 }
-
-void MMLocomotionCode::onInterruptionEvent(std::shared_ptr<Event> event) {
-    auto delayedMove = std::static_pointer_cast<InterruptionEvent<MoveCmd>>(event);
-    const MoveCmd &c = delayedMove->data;
-
-    if (moving) {
-        getScheduler()->schedule(
-            new InterruptionEvent<MoveCmd>(
-                getScheduler()->now() + 1000, module, c));
-    } else if (module->position == c.from) {
-        pendingMoves.erase(c.seq);
-        moveScheduled = false;
-        startMove(c, false);
-    } else if (pendingMoves.find(c.seq) != pendingMoves.end()) {
-        getScheduler()->schedule(
-            new InterruptionEvent<MoveCmd>(
-                getScheduler()->now() + 1000, module, c));
-    }
-}
-
-/* ------------------------------------------------------------------ */
-/*  Path finding (given in the exercise sheet)                         */
-/* ------------------------------------------------------------------ */
 
 vector<Cell3DPosition> MMLocomotionCode::findPath(Cell3DPosition &start, Cell3DPosition &goal) {
-    // BFS that returns the path from start to goal and uses getAllPossibleMotionsFromPosition
     vector<Cell3DPosition> path;
     set<Cell3DPosition> visited;
     map<Cell3DPosition, Cell3DPosition> parentMap;
@@ -385,6 +322,8 @@ vector<Cell3DPosition> MMLocomotionCode::findPath(Cell3DPosition &start, Cell3DP
     q.push(start);
     visited.insert(start);
     bool found = false;
+    size_t expanded = 0;
+
     while (!q.empty() and !found) {
         Cell3DPosition current = q.front();
         q.pop();
@@ -392,10 +331,12 @@ vector<Cell3DPosition> MMLocomotionCode::findPath(Cell3DPosition &start, Cell3DP
             found = true;
             break;
         }
+        if (++expanded > MAX_BFS_NODES) break;
         vector<Cell3DPosition> reachablePositions;
-        bool success = getAllPossibleMotionsFromPosition(current, reachablePositions);
-        if (success) {
+
+        if (getAllPossibleMotionsFromPosition(current, reachablePositions)) {
             for (auto &pos : reachablePositions) {
+                if (pos != goal && lattice->getBlock(pos)) continue;
                 if (visited.find(pos) == visited.end()) {
                     visited.insert(pos);
                     parentMap[pos] = current;
@@ -404,28 +345,24 @@ vector<Cell3DPosition> MMLocomotionCode::findPath(Cell3DPosition &start, Cell3DP
             }
         }
     }
+
     if (found) {
-        cout << "Found path from " << start << " to " << goal << "\n";
         Cell3DPosition step = goal;
         while (step != start) {
             path.push_back(step);
             step = parentMap[step];
         }
         reverse(path.begin(), path.end());
-    } else {
-        cout << "No path found from " << start << " to " << goal << "\n";
     }
+
     return path;
 }
 
-bool MMLocomotionCode::getAllPossibleMotionsFromPosition(
-    // get all reachable positions from any given position (used in findPath)
-    Cell3DPosition position,
-    vector<Cell3DPosition> &reachablePositions) {
+bool MMLocomotionCode::getAllPossibleMotionsFromPosition(Cell3DPosition position, vector<Cell3DPosition> &reachablePositions) {
     Catoms3DBlock *mod = static_cast<Catoms3DBlock *>(lattice->getBlock(position));
     if (mod) {
         for (auto &neighPos : lattice->getFreeNeighborCells(position)) {
-            if (mod->canMoveTo(neighPos)) {
+            if (mod->canMoveTo(neighPos) && (!lattice->getBlock(neighPos) || neighPos == position)) {
                 reachablePositions.push_back(neighPos);
             }
         }
@@ -436,15 +373,15 @@ bool MMLocomotionCode::getAllPossibleMotionsFromPosition(
         Catoms3DBlock *neigh = static_cast<Catoms3DBlock *>(lattice->getBlock(neighPos));
         vector<Catoms3DMotionRulesLink *> vec;
         Catoms3DMotionRules motionRulesInstance;
-        Cell3DPosition pos;
         short conFrom = neigh->getConnectorId(position);
-        motionRulesInstance.getValidMotionListFromPivot(neigh, conFrom, vec,
-                                                        static_cast<FCCLattice *>(lattice), NULL);
+        motionRulesInstance.getValidMotionListFromPivot(neigh, conFrom, vec, static_cast<FCCLattice *>(lattice), NULL);
         for (auto link : vec) {
             Cell3DPosition toPos;
             neigh->getNeighborPos(link->getConToID(), toPos);
-            reachablePositions.push_back(toPos);
-            found = true;
+            if (!lattice->getBlock(toPos) || toPos == position) {
+                reachablePositions.push_back(toPos);
+                found = true;
+            }
         }
     }
     return found;

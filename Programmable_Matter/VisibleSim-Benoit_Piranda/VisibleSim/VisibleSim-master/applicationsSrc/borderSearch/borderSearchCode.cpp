@@ -148,9 +148,9 @@ void BorderSearchCode::printCompressedBorder(
 
     for (const BorderSegment &segment : data.segments) {
         cout << "    "
-             << directionName(static_cast<int>(segment.direction))
+             << directionName(segment.direction())
              << " x "
-             << static_cast<unsigned int>(segment.length)
+             << segment.length()
              << endl;
     }
 
@@ -159,6 +159,11 @@ void BorderSearchCode::printCompressedBorder(
          << " (1 start corner + "
          << data.segments.size()
          << " segments)"
+         << endl;
+
+    cout << "  segment payload = "
+         << data.segments.size()
+         << " byte(s) (1 byte per segment)"
          << endl;
 }
 
@@ -239,8 +244,7 @@ void BorderSearchCode::handleBorderSearch(
             data->prevDir);
 
         if (finalLength > 0) {
-            closedSegments.push_back(
-                BorderSegment(data->prevDir, finalLength));
+            appendSegment(closedSegments, data->prevDir, finalLength);
         }
 
         setColor(YELLOW);
@@ -294,8 +298,7 @@ void BorderSearchCode::handleBorderSearch(
             data->prevDir);
 
         if (length > 0) {
-            segments.push_back(
-                BorderSegment(data->prevDir, length));
+            appendSegment(segments, data->prevDir, length);
         }
 
         currentCorner = currentPos;
