@@ -12,10 +12,7 @@ MMLocomotionCode::MMLocomotionCode(Catoms3DBlock *host)
     addMessageEventFunc2(RESET_MSG_ID, std::bind(&MMLocomotionCode::onCycleReset, this, std::placeholders::_1, std::placeholders::_2));
 }
 
-/* ------------------------------------------------------------------ */
-/*  Shape Helpers                                                     */
-/* ------------------------------------------------------------------ */
-
+//  Shape Helpers
 const std::array<Cell3DPosition, 12>& MMLocomotionCode::cellsOf(MMShape s) {
     return (s == MMShape::FB) ? FB_RELATIVE_POSITIONS : BF_RELATIVE_POSITIONS;
 }
@@ -51,10 +48,7 @@ int MMLocomotionCode::getArrIdx(int curIdx, bool movingRight) {
     return movingRight ? curIdx : 11 - curIdx;
 }
 
-/* ------------------------------------------------------------------ */
-/*  Distributed Spatial Pipelining Logic                              */
-/* ------------------------------------------------------------------ */
-
+//  Distributed Spatial Pipelining Logic
 void MMLocomotionCode::startup() {
     checkInitiator(0, true);
 }
@@ -149,10 +143,7 @@ void MMLocomotionCode::onCycleReset(std::shared_ptr<Message> msg, P2PNetworkInte
     checkInitiator(cr.cycleSeq, cr.movingRight);
 }
 
-/* ------------------------------------------------------------------ */
-/*  Mover Execution & Conveyor Belt Logic                             */
-/* ------------------------------------------------------------------ */
-
+//  Conveyor Belt Logic
 void MMLocomotionCode::executeToken(const MoveToken &t) {
     myToken = t;
     moving = true;

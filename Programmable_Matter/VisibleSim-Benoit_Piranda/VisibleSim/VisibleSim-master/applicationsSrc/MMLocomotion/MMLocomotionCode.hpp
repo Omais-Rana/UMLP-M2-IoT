@@ -47,7 +47,6 @@ static const int LOCAL_RETRY_MIN  = 100000;
 static const int LOCAL_RETRY_MAX  = 300000;
 static const size_t MAX_BFS_NODES = 4000;
 
-// Relative positions engineered for seamless disassembly[cite: 26]
 static const std::array<Cell3DPosition, 12> FB_RELATIVE_POSITIONS = {
     Cell3DPosition(-2, -1, 3), Cell3DPosition(-1, -1, 2), Cell3DPosition(-2, -1, 1),
     Cell3DPosition(-1, -1, 3), Cell3DPosition(-1, -1, 1), Cell3DPosition(0, 0, 4),
