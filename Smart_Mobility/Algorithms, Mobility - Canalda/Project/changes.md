@@ -120,6 +120,8 @@ This file records the mobility-platform improvements completed in this conversat
 - Added frontend progress-request validation and a ten-minute timeout message instead of an indefinite loader.
 - Made planning progress explicitly non-cacheable and added immediate processing statuses so polling cannot remain on a stale queued response.
 - Fixed the loader helpers being scoped inside the map-marker factory, which prevented the calculate handler from starting progress polling.
+- Reduced timetable memory pressure by streaming active stop times through a feed-qualified `stop_times`/`trips` join, avoiding materialization of all trip IDs and a large `whereIn` parameter list.
+- Changed timetable connection generation to stream SQL-built adjacent connections in departure order, eliminating the full PHP connection array, its sort-time copy, and oversized cache writes.
 
 ## Planned from now
 

@@ -5,23 +5,17 @@ namespace App\Services\Routing;
 use App\Models\Calendar;
 use App\Models\CalendarDate;
 use App\Models\Stop;
-use App\Models\StopTime;
 use App\Models\Transfer;
-use App\Models\Trip;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class ConnectionScan
 {
     /**
-     * Cache duration for prepared connections on a given date.
-     */
-    protected const CACHE_TTL_SECONDS = 3600;
-
-    /**
      * Get or build sorted connections for a specific service date.
      *
-     * @return list<array{
+     * @return iterable<array{
      *     trip_id: string,
      *     route_id: string,
      *     dep_stop: string,
@@ -31,107 +25,94 @@ class ConnectionScan
      *     seq: int
      * }>
      */
-    public function getConnectionsForDate(string $date): array
+    public function getConnectionsForDate(string $date, bool $reverse = false): iterable
     {
-        $cacheKey = "csa_connections_v2_{$date}";
+        $parsedDate = Carbon::parse($date);
+        $dayOfWeek = $parsedDate->dayOfWeekIso; // 1 (Mon) to 7 (Sun)
+        $dateStr = $parsedDate->format('Y-m-d');
 
-        return Cache::remember($cacheKey, self::CACHE_TTL_SECONDS, function () use ($date) {
-            $parsedDate = Carbon::parse($date);
-            $dayOfWeek = $parsedDate->dayOfWeekIso; // 1 (Mon) to 7 (Sun)
-            $dateStr = $parsedDate->format('Y-m-d');
+        // 1. Identify active service IDs
+        $calendars = Calendar::where('start_date', '<=', $dateStr)
+            ->where('end_date', '>=', $dateStr)
+            ->get();
 
-            // 1. Identify active service IDs
-            $calendars = Calendar::where('start_date', '<=', $dateStr)
-                ->where('end_date', '>=', $dateStr)
-                ->get();
-
-            $activeServices = [];
-            foreach ($calendars as $cal) {
-                $runs = match ($dayOfWeek) {
-                    1 => $cal->monday,
-                    2 => $cal->tuesday,
-                    3 => $cal->wednesday,
-                    4 => $cal->thursday,
-                    5 => $cal->friday,
-                    6 => $cal->saturday,
-                    7 => $cal->sunday,
-                    default => false,
-                };
-                if ($runs) {
-                    $activeServices[$cal->service_id] = true;
-                }
+        $activeServices = [];
+        foreach ($calendars as $cal) {
+            $runs = match ($dayOfWeek) {
+                1 => $cal->monday,
+                2 => $cal->tuesday,
+                3 => $cal->wednesday,
+                4 => $cal->thursday,
+                5 => $cal->friday,
+                6 => $cal->saturday,
+                7 => $cal->sunday,
+                default => false,
+            };
+            if ($runs) {
+                $activeServices[$cal->service_id] = true;
             }
+        }
 
-            // Exceptions
-            $exceptions = CalendarDate::where('date', $dateStr)->get();
-            foreach ($exceptions as $exc) {
-                if ($exc->exception_type === 1) {
-                    $activeServices[$exc->service_id] = true;
-                } elseif ($exc->exception_type === 2) {
-                    unset($activeServices[$exc->service_id]);
-                }
+        // Exceptions
+        $exceptions = CalendarDate::where('date', $dateStr)->get();
+        foreach ($exceptions as $exc) {
+            if ($exc->exception_type === 1) {
+                $activeServices[$exc->service_id] = true;
+            } elseif ($exc->exception_type === 2) {
+                unset($activeServices[$exc->service_id]);
             }
+        }
 
-            if (empty($activeServices)) {
-                return [];
-            }
+        if (empty($activeServices)) {
+            return [];
+        }
 
-            $serviceIds = array_keys($activeServices);
+        $serviceIds = array_keys($activeServices);
 
-            // 2. Fetch all trips for active services
-            $trips = Trip::query()
-                ->whereIn('service_id', $serviceIds)
-                ->toBase()
-                ->get(['feed_id', 'trip_id', 'route_id'])
-                ->keyBy(fn (object $trip): string => $this->key($trip->feed_id, $trip->trip_id));
-            if ($trips->isEmpty()) {
-                return [];
-            }
+        // 2. Build adjacent trip connections in SQL, ordered for CSA, and
+        // consume them incrementally so PHP never stores the full timetable.
+        $query = DB::table('stop_times as dep')
+            ->join('stop_times as arr', function ($join): void {
+                $join->on('arr.feed_id', '=', 'dep.feed_id')
+                    ->on('arr.trip_id', '=', 'dep.trip_id')
+                    ->whereRaw('arr.stop_sequence = dep.stop_sequence + 1');
+            })
+            ->join('trips', function ($join): void {
+                $join->on('trips.feed_id', '=', 'dep.feed_id')
+                    ->on('trips.trip_id', '=', 'dep.trip_id');
+            })
+            ->whereIn('trips.service_id', $serviceIds)
+            ->select([
+                'dep.feed_id',
+                'dep.trip_id',
+                'trips.route_id',
+                'dep.stop_id as dep_stop_id',
+                'arr.stop_id as arr_stop_id',
+                'dep.departure_seconds as dep_time',
+                'arr.arrival_seconds as arr_time',
+                'dep.stop_sequence as seq',
+            ]);
 
-            $tripIds = $trips->pluck('trip_id')->all();
+        if ($reverse) {
+            $query->orderByDesc('arr.arrival_seconds');
+        } else {
+            $query->orderBy('dep.departure_seconds');
+        }
 
-            // 3. Stream stop_times in trip order to avoid retaining models and a
-            // grouped copy of the complete timetable at the same time.
-            $stopTimes = StopTime::query()
-                ->whereIn('trip_id', $tripIds)
-                ->orderBy('feed_id')
-                ->orderBy('trip_id')
-                ->orderBy('stop_sequence')
-                ->cursor(['feed_id', 'trip_id', 'stop_id', 'arrival_seconds', 'departure_seconds', 'stop_sequence']);
-
-            $connections = [];
-            $previous = null;
-            $previousTripId = null;
-
-            foreach ($stopTimes as $stopTime) {
-                $tripId = $this->key($stopTime->feed_id, $stopTime->trip_id);
-
-                if ($tripId !== $previousTripId) {
-                    $previous = null;
-                    $previousTripId = $tripId;
-                }
-
-                if ($previous !== null && $trips->has($tripId)) {
-                    $trip = $trips->get($tripId);
-                    $connections[] = [
-                        'trip_id' => $tripId,
-                        'route_id' => $this->key($trip->feed_id, $trip->route_id),
-                        'dep_stop' => $this->key($previous->feed_id, $previous->stop_id),
-                        'arr_stop' => $this->key($stopTime->feed_id, $stopTime->stop_id),
-                        'dep_time' => (int) $previous->departure_seconds,
-                        'arr_time' => (int) $stopTime->arrival_seconds,
-                        'seq' => (int) $previous->stop_sequence,
-                    ];
-                }
-
-                $previous = $stopTime;
-            }
-
-            // Sort ascending by departure time
-            usort($connections, fn ($a, $b) => $a['dep_time'] <=> $b['dep_time']);
-
-            return $connections;
-        });
+        return $query
+            ->orderBy('dep.feed_id')
+            ->orderBy('dep.trip_id')
+            ->orderBy('dep.stop_sequence')
+            ->cursor()
+            ->map(fn (object $connection): array => [
+                'trip_id' => $this->key($connection->feed_id, $connection->trip_id),
+                'route_id' => $this->key($connection->feed_id, $connection->route_id),
+                'dep_stop' => $this->key($connection->feed_id, $connection->dep_stop_id),
+                'arr_stop' => $this->key($connection->feed_id, $connection->arr_stop_id),
+                'dep_time' => (int) $connection->dep_time,
+                'arr_time' => (int) $connection->arr_time,
+                'seq' => (int) $connection->seq,
+            ]);
     }
 
     /**
@@ -253,11 +234,8 @@ class ConnectionScan
      */
     public function latestDeparture(array $destinationArrivals, string $date): array
     {
-        $connections = $this->getConnectionsForDate($date);
+        $connections = $this->getConnectionsForDate($date, true);
         $transfersByStop = $this->getTransfersMap();
-
-        // Sort descending by arrival time for reverse scan
-        usort($connections, fn ($a, $b) => $b['arr_time'] <=> $a['arr_time']);
 
         /** @var array<string, int> $L Latest departure time at each stop */
         $L = [];
