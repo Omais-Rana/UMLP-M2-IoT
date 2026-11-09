@@ -103,6 +103,23 @@ This file records the mobility-platform improvements completed in this conversat
 - Updated midpoint ordering so strategies with a genuine shared meeting point are preferred ahead of independent fallback journeys when both are available.
 - Added collapsible route-detail cards for itineraries containing transit or other multi-stop transport legs, reducing result-panel height while retaining all leg details.
 - Updated the demo contract test to reflect that an independent fallback has no shared meeting point.
+- Fixed `arrive_by` planning so the requested time is treated as a hard destination-arrival cutoff instead of being ignored.
+- Added an arrival-by search window and regression coverage preventing late options from being returned.
+- Corrected shared-hub eligibility so a transit itinerary may use two walking legs of up to 500 m each (origin access plus hub access), instead of incorrectly rejecting it when their combined distance exceeded 500 m. Individual walking legs remain capped at 500 m.
+- Moved the planning loader out of the left controls sidebar into a centered full-page modal overlay with a blurred background, wider participant progress layout, and automatic removal when results are displayed.
+- Aligned shared meeting-point group-leg walking checks with the current 500 m policy, replacing the remaining 300 m exceptions for walking from a hub to transit and from transit to the destination.
+- Increased walking-distance penalty in route scoring so longer walking legs are not selected for negligible arrival-time gains.
+- Limited origin, destination, direct, transfer, and total itinerary walking to 300 metres.
+- Corrected `arrive_by` ranking to sample departure times and select the latest feasible itinerary instead of returning routes from the beginning of the search window.
+- Reduced arrival-by sampling from 10-minute scans to four one-hour samples and fixed sampled start times being ignored, preventing planning requests from exceeding the PHP execution limit.
+- Pruned candidate and destination evaluation to stops within the 300 metre walking limit, avoiding full reachable-stop scans for every participant and meeting point.
+- Moved planning to a database-backed queued run so the HTTP request returns immediately for large groups.
+- Added per-participant progress tracking and a polling progress endpoint.
+- Added a participant loader with progress bar and individual route statuses to the map interface.
+- Aligned the database queue retry window with the 300-second planning job and added explicit failed-run reporting for worker timeouts.
+- Added frontend progress-request validation and a ten-minute timeout message instead of an indefinite loader.
+- Made planning progress explicitly non-cacheable and added immediate processing statuses so polling cannot remain on a stale queued response.
+- Fixed the loader helpers being scoped inside the map-marker factory, which prevented the calculate handler from starting progress polling.
 
 ## Planned from now
 

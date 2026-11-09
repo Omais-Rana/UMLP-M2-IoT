@@ -7,4 +7,5 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/bootstrap', [MapController::class, 'bootstrap']);
 Route::post('/plan', [PlanController::class, 'plan']);
+Route::get('/plan/{runId}/progress', [PlanController::class, 'progress']);
 Route::get('/stops/search', StopSearchController::class);

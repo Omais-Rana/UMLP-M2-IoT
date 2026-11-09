@@ -1,0 +1,4 @@
+To use program via terminal use this command: php solution.php
+
+To use web interface use this command: php -S 123.0.0.1:8000
+Go to this address to access the interface: http://127.0.0.1:8000

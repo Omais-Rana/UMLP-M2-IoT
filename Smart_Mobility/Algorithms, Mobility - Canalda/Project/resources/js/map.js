@@ -166,6 +166,52 @@ document.addEventListener('DOMContentLoaded', () => {
             iconSize: [34, 34],
             iconAnchor: [17, 17]
         });
+
+    }
+
+    function renderPlanningParticipants(items) {
+        planningParticipants.innerHTML = items.map(item => {
+            const status = item.status === 'completed' ? 'Complete' : item.status === 'processing' ? 'Planning…' : 'Waiting';
+            const color = item.status === 'completed' ? 'text-emerald-600' : item.status === 'processing' ? 'text-[#FF5722]' : 'text-[#6B7280]';
+            return `<div class="flex items-center justify-between text-xs">
+                <span class="font-medium text-[#111827]">${escapeHtml(item.name)}</span>
+                <span class="font-mono-tag ${color}">${status}</span>
+            </div>`;
+        }).join('');
+    }
+
+    async function waitForPlanning(planningId) {
+        const startedAt = Date.now();
+        const maxWaitMs = 10 * 60 * 1000;
+
+        while (true) {
+            const response = await fetch(`/api/plan/${planningId}/progress?poll=${Date.now()}`, {
+                cache: 'no-store',
+                headers: { 'Accept': 'application/json' }
+            });
+            if (!response.ok) {
+                throw new Error('Unable to read planning progress.');
+            }
+            const progress = await response.json();
+            const total = Math.max(1, progress.total_participants);
+            const percent = Math.round((progress.completed_participants / total) * 100);
+            planningProgressText.textContent = `${percent}%`;
+            planningProgressBar.style.width = `${percent}%`;
+            renderPlanningParticipants(progress.participants || []);
+
+            if (progress.status === 'completed') return progress;
+            if (progress.status === 'failed') throw new Error(progress.error || 'Planning failed.');
+            if (Date.now() - startedAt > maxWaitMs) {
+                throw new Error('Planning is taking too long. Check that the queue worker is running with a 300-second timeout.');
+            }
+            await new Promise(resolve => setTimeout(resolve, 750));
+        }
+    }
+
+    function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, character => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+        }[character]));
     }
 
     function createPickupIcon() {
@@ -614,6 +660,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const calcText = document.getElementById('calcText');
     const errorBox = document.getElementById('errorBox');
     const errorMessage = document.getElementById('errorMessage');
+    const planningLoader = document.getElementById('planningLoader');
+    const planningProgressText = document.getElementById('planningProgressText');
+    const planningProgressBar = document.getElementById('planningProgressBar');
+    const planningParticipants = document.getElementById('planningParticipants');
 
     btnCalculate.addEventListener('click', async () => {
         errorBox.classList.add('hidden');
@@ -650,6 +700,9 @@ document.addEventListener('DOMContentLoaded', () => {
         calcSpinner.classList.remove('hidden');
         calcText.textContent = t('calc_running');
         btnCalculate.disabled = true;
+        planningLoader.classList.remove('hidden');
+        planningLoader.classList.add('flex');
+        renderPlanningParticipants(participants.map(participant => ({ name: participant.name, status: 'pending' })));
 
         try {
             const res = await fetch('/api/plan', {
@@ -674,19 +727,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            if (!data.options || data.options.length === 0) {
+            if (res.status !== 202 || !data.planning_id) {
+                showError(data.message || 'Unable to start planning.');
+                return;
+            }
+
+            const result = await waitForPlanning(data.planning_id);
+            if (!result.options || result.options.length === 0) {
                 showError(t('val_no_route'));
                 return;
             }
 
-            currentOptions = data.options;
+            currentOptions = result.options;
             selectedOptionIndex = 0;
             displayResults();
 
         } catch (err) {
             console.error('API Error:', err);
-            showError(t('network_err'));
+            showError(err.message || t('network_err'));
         } finally {
+            planningLoader.classList.add('hidden');
+            planningLoader.classList.remove('flex');
             calcIcon.classList.remove('hidden');
             calcSpinner.classList.add('hidden');
             calcText.textContent = t('calc_btn');

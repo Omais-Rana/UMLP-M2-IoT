@@ -14,6 +14,8 @@ use Illuminate\Support\Collection;
 
 class MeetingPointFinder
 {
+    private const MAX_GROUP_WALK_METERS = 500.0;
+
     public function __construct(
         protected ItineraryPlanner $planner,
         protected CarAssignment $carAssignment,
@@ -46,15 +48,32 @@ class MeetingPointFinder
         string $time,
         string $timeType,
         array $destination,
-        string $objective = 'latest_arrival'
+        string $objective = 'latest_arrival',
+        ?callable $onParticipantCompleted = null
     ): array {
         $timeParts = explode(':', $time);
-        $startTimeSec = ((int) ($timeParts[0] ?? 8) * 3600) + ((int) ($timeParts[1] ?? 30) * 60);
+        $requestedTimeSec = ((int) ($timeParts[0] ?? 8) * 3600) + ((int) ($timeParts[1] ?? 30) * 60);
+        $startTimeSec = $timeType === 'arrive_by'
+            ? max(0, $requestedTimeSec - (3 * 3600))
+            : $requestedTimeSec;
+        $latestArrivalSec = $timeType === 'arrive_by' ? $requestedTimeSec : null;
 
-        // 1. Compute reachability for all participants
+        // 1. Compute reachability for all participants. Arrival-by searches
+        // sample departure times so the result is the latest feasible option,
+        // rather than the earliest option from the start of the search window.
         $reachMap = [];
         foreach ($participants as $p) {
-            $reachMap[$p['name']] = $this->planner->reach($p, $startTimeSec, $date, $destination);
+            $reachMap[$p['name']] = $this->findBestReach(
+                $p,
+                $startTimeSec,
+                $requestedTimeSec,
+                $date,
+                $destination,
+                $latestArrivalSec
+            );
+            if ($onParticipantCompleted !== null) {
+                $onParticipantCompleted($p['name'], count($reachMap));
+            }
         }
 
         $allStrategies = [];
@@ -107,6 +126,9 @@ class MeetingPointFinder
             }
 
             $finalArrivalSec = $groupLeg['arrival_sec'];
+            if ($latestArrivalSec !== null && $finalArrivalSec > $latestArrivalSec) {
+                continue;
+            }
             $itineraries = [];
             $totalWaitMin = 0;
             $totalWalkingM = 0;
@@ -234,6 +256,13 @@ class MeetingPointFinder
         ];
 
         // 5. Sort strategies by objective and tie-breakers
+        if ($latestArrivalSec !== null) {
+            $allStrategies = array_values(array_filter(
+                $allStrategies,
+                fn (array $strategy): bool => $strategy['arrival_sec'] <= $latestArrivalSec
+            ));
+        }
+
         usort($allStrategies, function ($a, $b) use ($objective) {
             $aHasMeetingPoint = $a['meeting_points'] !== [];
             $bHasMeetingPoint = $b['meeting_points'] !== [];
@@ -347,6 +376,54 @@ class MeetingPointFinder
     }
 
     /**
+     * @param  array{name: string, lat: float, lon: float, has_car?: bool, share_ride?: bool}  $participant
+     * @return array<string, mixed>
+     */
+    protected function findBestReach(
+        array $participant,
+        int $earliestStartSec,
+        int $latestStartSec,
+        string $date,
+        array $destination,
+        ?int $latestArrivalSec
+    ): array {
+        if ($latestArrivalSec === null) {
+            return $this->planner->reach($participant, $latestStartSec, $date, $destination);
+        }
+
+        // A full connection scan is expensive. Four one-hour samples provide
+        // a practical latest-feasible departure search without 10-minute scans.
+        $stepSec = 60 * 60;
+        $bestReach = null;
+
+        for ($searchStartSec = $earliestStartSec; $searchStartSec <= $latestStartSec; $searchStartSec += $stepSec) {
+            $reach = $this->planner->reach(
+                $participant,
+                $searchStartSec,
+                $date,
+                $destination,
+                $latestArrivalSec
+            );
+
+            if ($reach['earliest_at_destination'] === PHP_INT_MAX) {
+                continue;
+            }
+
+            if ($bestReach === null || $reach['earliest_at_destination'] > $bestReach['earliest_at_destination']) {
+                $bestReach = $reach;
+            }
+        }
+
+        return $bestReach ?? $this->planner->reach(
+            $participant,
+            $earliestStartSec,
+            $date,
+            $destination,
+            $latestArrivalSec
+        );
+    }
+
+    /**
      * Compute transit or direct group travel from a candidate meeting hub to the final destination.
      *
      * @param  array{name: string, lat: float, lon: float}  $destination
@@ -369,7 +446,7 @@ class MeetingPointFinder
 
         // 1. If very close, walk together
         $directDist = $this->travelTime->distanceMeters($hubLat, $hubLon, $destLat, $destLon);
-        if ($directDist <= 1200.0) {
+        if ($directDist <= self::MAX_GROUP_WALK_METERS) {
             $walkSec = $this->travelTime->durationSeconds($hubLat, $hubLon, $destLat, $destLon, 'walk');
             $arrSec = $depSec + $walkSec;
 
@@ -391,7 +468,7 @@ class MeetingPointFinder
         $nearStops = [];
         foreach ($stops as $s) {
             $dist = $this->travelTime->distanceMeters($hubLat, $hubLon, $s->lat, $s->lon);
-            if ($dist <= 600.0) {
+            if ($dist <= self::MAX_GROUP_WALK_METERS) {
                 $walkTime = $this->travelTime->durationSeconds($hubLat, $hubLon, $s->lat, $s->lon, 'walk');
                 $nearStops[$s->feed_id.':'.$s->stop_id] = $depSec + $walkTime;
             }
@@ -408,7 +485,7 @@ class MeetingPointFinder
                 }
                 $sObj = $stops[$stopId];
                 $distToDest = $this->travelTime->distanceMeters($sObj->lat, $sObj->lon, $destLat, $destLon);
-                if ($distToDest <= 1000.0) {
+                if ($distToDest <= self::MAX_GROUP_WALK_METERS) {
                     $walkToDestSec = $this->travelTime->durationSeconds($sObj->lat, $sObj->lon, $destLat, $destLon, 'walk');
                     $totArr = $arrTime + $walkToDestSec;
                     if ($totArr < $bestStopArr) {

@@ -290,6 +290,30 @@
 
     </div>
 
+    <!-- Full-page planning overlay. Results replace this view when calculation completes. -->
+    <div id="planningLoader" class="hidden fixed inset-0 z-[1000] items-center justify-center bg-[#111827]/35 p-4 backdrop-blur-sm" role="status" aria-live="polite" aria-label="Planning routes">
+        <div class="w-full max-w-2xl rounded-3xl border border-white/70 bg-white/95 p-6 shadow-2xl backdrop-blur-md sm:p-8">
+            <div class="flex items-start justify-between gap-6">
+                <div>
+                    <p class="font-mono-tag text-[11px] font-bold uppercase tracking-[0.18em] text-[#FF5722]">Smart Mobility</p>
+                    <h2 class="mt-1 font-display text-xl font-bold tracking-tight text-[#111827] sm:text-2xl">Planning your routes</h2>
+                    <p class="mt-1 text-sm text-[#4B5563]">Calculating the best option for everyone.</p>
+                </div>
+                <span id="planningProgressText" class="shrink-0 rounded-full bg-[#FFF1EC] px-3 py-1 font-mono-tag text-sm font-bold text-[#FF5722]">0%</span>
+            </div>
+            <div class="mt-6 h-3 overflow-hidden rounded-full bg-[#E5E7EB]">
+                <div id="planningProgressBar" class="h-full w-0 rounded-full bg-[#FF5722] transition-all duration-300"></div>
+            </div>
+            <div class="mt-6 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+                <div class="mb-3 flex items-center justify-between">
+                    <span class="font-mono-tag text-[11px] font-bold uppercase tracking-wider text-[#4B5563]">Participants</span>
+                    <span class="animate-pulse text-xs text-[#FF5722]">Working…</span>
+                </div>
+                <div id="planningParticipants" class="grid gap-3 sm:grid-cols-2"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Inject Bootstrap Data for Client Script -->
     <script>
         window.MISC_BOOTSTRAP = @json($bootstrap);
