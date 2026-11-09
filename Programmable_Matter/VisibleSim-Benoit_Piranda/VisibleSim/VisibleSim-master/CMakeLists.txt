@@ -637,6 +637,10 @@ add_executable(MMLocomotion applicationsSrc/MMLocomotion/MMLocomotion.cpp applic
     target_link_libraries(MMLocomotion -lCatoms3D -lfreeglut -lmuparser -lOpenGL32 -lglu32 -lglew32d)
 install(TARGETS MMLocomotion RUNTIME DESTINATION applicationsBin/MMLocomotion)
 
+add_executable(idAssign applicationsSrc/idAssign/idAssign.cpp applicationsSrc/idAssign/idAssignCode.cpp)
+target_link_libraries(idAssign -lBlinkyBlocks -lfreeglut -lmuparser -lOpenGL32 -lglu32 -lglew32d)
+install(TARGETS idAssign RUNTIME DESTINATION applicationsBin/idAssign)
+
 #################################################################################
 ############################ REPLAYER ###########################################
 #################################################################################

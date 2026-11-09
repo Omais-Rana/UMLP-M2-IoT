@@ -1,0 +1,2 @@
+to_stop_id,transfer_type,from_stop_id,min_transfer_time
+second-stop,2,shared-stop,120
