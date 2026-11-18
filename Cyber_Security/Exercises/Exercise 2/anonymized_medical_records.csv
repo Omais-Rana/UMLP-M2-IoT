@@ -1,0 +1,406 @@
+Age,Sex,Disease,Result,Person,Region,Period
+40-59,Male,Hypertension,Negative,P-671c6390,ZIP 4-6,2019-2021
+40-59,Male,Asthma,Positive,P-671c6390,ZIP 4-6,2019-2021
+40-59,Male,COVID-19,Positive,P-671c6390,ZIP 4-6,2022-2024
+40-59,Male,Cancer,Positive,P-671c6390,ZIP 4-6,2022-2024
+60-79,Male,Diabetes,Positive,P-adc95a7e,ZIP 1-3,2019-2021
+60-79,Male,COVID-19,Positive,P-adc95a7e,ZIP 1-3,2019-2021
+60-79,Male,Hypertension,Negative,P-adc95a7e,ZIP 1-3,2022-2024
+60-79,Male,Cancer,Positive,P-adc95a7e,ZIP 1-3,2022-2024
+60-79,Male,Cancer,Negative,P-adc95a7e,ZIP 1-3,2022-2024
+20-39,Male,Cancer,Positive,P-7c512542,ZIP 1-3,2019-2021
+20-39,Male,Asthma,Positive,P-7c512542,ZIP 1-3,2019-2021
+20-39,Male,COVID-19,Positive,P-7c512542,ZIP 1-3,2022-2024
+20-39,Male,Diabetes,Negative,P-7c512542,ZIP 1-3,2022-2024
+20-39,Male,Cancer,Negative,P-7c512542,ZIP 1-3,2022-2024
+60-79,Female,Cancer,Negative,P-59ca329e,ZIP 1-3,2022-2024
+60-79,Female,COVID-19,Negative,P-59ca329e,ZIP 1-3,2022-2024
+60-79,Female,Diabetes,Positive,P-59ca329e,ZIP 1-3,2019-2021
+60-79,Female,Cancer,Positive,P-59ca329e,ZIP 1-3,2019-2021
+60-79,Male,Hypertension,Positive,P-e616df76,ZIP 1-3,2019-2021
+60-79,Male,COVID-19,Negative,P-e616df76,ZIP 1-3,2022-2024
+60-79,Male,Heart Disease,Positive,P-e616df76,ZIP 1-3,2022-2024
+60-79,Male,Diabetes,Negative,P-e616df76,ZIP 1-3,2019-2021
+60-79,Male,Cancer,Negative,P-e616df76,ZIP 1-3,2022-2024
+60-79,Female,Hypertension,Negative,P-80e4eeaa,ZIP 4-6,2019-2021
+60-79,Female,Cancer,Negative,P-80e4eeaa,ZIP 4-6,2019-2021
+60-79,Female,Asthma,Positive,P-80e4eeaa,ZIP 4-6,2022-2024
+60-79,Female,Cancer,Negative,P-80e4eeaa,ZIP 4-6,2022-2024
+20-39,Male,Hypertension,Negative,P-d3967f67,ZIP 1-3,2022-2024
+20-39,Male,Asthma,Negative,P-d3967f67,ZIP 1-3,2019-2021
+20-39,Male,Heart Disease,Negative,P-d3967f67,ZIP 1-3,2019-2021
+20-39,Male,Diabetes,Negative,P-d3967f67,ZIP 1-3,2022-2024
+20-39,Male,Cancer,Negative,P-d3967f67,ZIP 1-3,2022-2024
+40-59,Female,Hypertension,Negative,P-6cc17f9e,ZIP 7-9,2022-2024
+40-59,Female,Cancer,Positive,P-6cc17f9e,ZIP 7-9,2022-2024
+20-39,Female,Cancer,Positive,P-b43996bf,ZIP 4-6,2019-2021
+20-39,Female,Hypertension,Negative,P-b43996bf,ZIP 4-6,2019-2021
+20-39,Female,Asthma,Negative,P-b43996bf,ZIP 4-6,2022-2024
+20-39,Female,Heart Disease,Negative,P-b43996bf,ZIP 4-6,2019-2021
+20-39,Female,COVID-19,Negative,P-b43996bf,ZIP 4-6,2022-2024
+20-39,Female,Cancer,Negative,P-b43996bf,ZIP 4-6,2019-2021
+60-79,Female,Hypertension,Positive,P-3f77aa51,ZIP 4-6,2019-2021
+60-79,Female,Diabetes,Negative,P-3f77aa51,ZIP 4-6,2022-2024
+60-79,Female,Cancer,Negative,P-3f77aa51,ZIP 4-6,2022-2024
+60-79,Female,Heart Disease,Positive,P-3f77aa51,ZIP 4-6,2022-2024
+60-79,Female,Asthma,Positive,P-3f77aa51,ZIP 4-6,2022-2024
+60-79,Female,Cancer,Positive,P-3f77aa51,ZIP 4-6,2019-2021
+20-39,Male,Asthma,Negative,P-f74e62a6,ZIP 1-3,2022-2024
+20-39,Male,COVID-19,Negative,P-f74e62a6,ZIP 1-3,2022-2024
+20-39,Male,Hypertension,Negative,P-f74e62a6,ZIP 1-3,2022-2024
+20-39,Male,Diabetes,Negative,P-f74e62a6,ZIP 1-3,2022-2024
+20-39,Male,Heart Disease,Positive,P-f74e62a6,ZIP 1-3,2022-2024
+20-39,Male,Cancer,Negative,P-f74e62a6,ZIP 1-3,2022-2024
+80-99,Female,Cancer,Negative,P-a7bfd887,ZIP 4-6,2022-2024
+80-99,Female,Diabetes,Negative,P-a7bfd887,ZIP 4-6,2022-2024
+80-99,Female,COVID-19,Negative,P-a7bfd887,ZIP 4-6,2022-2024
+80-99,Female,Heart Disease,Positive,P-a7bfd887,ZIP 4-6,2022-2024
+80-99,Female,Cancer,Negative,P-a7bfd887,ZIP 4-6,2022-2024
+20-39,Male,Heart Disease,Negative,P-2aba7e80,ZIP 7-9,2022-2024
+20-39,Male,COVID-19,Positive,P-2aba7e80,ZIP 7-9,2022-2024
+20-39,Male,Cancer,Negative,P-2aba7e80,ZIP 7-9,2019-2021
+20-39,Male,Diabetes,Negative,P-2aba7e80,ZIP 7-9,2022-2024
+20-39,Male,Cancer,Negative,P-2aba7e80,ZIP 7-9,2019-2021
+60-79,Male,Heart Disease,Negative,P-99a50816,ZIP 7-9,2019-2021
+60-79,Male,Cancer,Positive,P-99a50816,ZIP 7-9,2022-2024
+60-79,Male,Cancer,Negative,P-99a50816,ZIP 7-9,2022-2024
+40-59,Male,Cancer,Negative,P-f20faf9e,ZIP 7-9,2022-2024
+40-59,Male,COVID-19,Negative,P-f20faf9e,ZIP 7-9,2022-2024
+40-59,Male,Cancer,Positive,P-f20faf9e,ZIP 7-9,2022-2024
+60-79,Male,Hypertension,Negative,P-de8e3077,ZIP 1-3,2019-2021
+60-79,Male,Cancer,Positive,P-de8e3077,ZIP 1-3,2022-2024
+60-79,Male,Diabetes,Negative,P-de8e3077,ZIP 1-3,2019-2021
+60-79,Male,Cancer,Positive,P-de8e3077,ZIP 1-3,2019-2021
+60-79,Male,COVID-19,Negative,P-4d1d2b47,ZIP 1-3,2019-2021
+60-79,Male,Cancer,Positive,P-4d1d2b47,ZIP 1-3,2022-2024
+20-39,Female,Heart Disease,Negative,P-bdc01177,ZIP 4-6,2022-2024
+20-39,Female,Cancer,Negative,P-bdc01177,ZIP 4-6,2019-2021
+20-39,Male,Asthma,Positive,P-a3506acf,ZIP 1-3,2022-2024
+20-39,Male,Diabetes,Negative,P-a3506acf,ZIP 1-3,2022-2024
+20-39,Male,Heart Disease,Negative,P-a3506acf,ZIP 1-3,2019-2021
+20-39,Male,Cancer,Negative,P-a3506acf,ZIP 1-3,2022-2024
+20-39,Male,COVID-19,Negative,P-a3506acf,ZIP 1-3,2019-2021
+20-39,Male,Cancer,Negative,P-a3506acf,ZIP 1-3,2022-2024
+20-39,Female,COVID-19,Positive,P-0b726242,ZIP 7-9,2019-2021
+20-39,Female,Cancer,Negative,P-0b726242,ZIP 7-9,2022-2024
+60-79,Female,Heart Disease,Negative,P-5c88208e,ZIP 7-9,2019-2021
+60-79,Female,Diabetes,Negative,P-5c88208e,ZIP 7-9,2022-2024
+60-79,Female,Asthma,Negative,P-5c88208e,ZIP 7-9,2022-2024
+60-79,Female,Hypertension,Negative,P-5c88208e,ZIP 7-9,2022-2024
+60-79,Female,Cancer,Negative,P-5c88208e,ZIP 7-9,2019-2021
+60-79,Female,Cancer,Positive,P-5c88208e,ZIP 7-9,2022-2024
+40-59,Female,Hypertension,Positive,P-32c8f7bd,ZIP 1-3,2019-2021
+40-59,Male,COVID-19,Positive,P-7b584bbe,ZIP 4-6,2019-2021
+40-59,Male,Heart Disease,Negative,P-7b584bbe,ZIP 4-6,2022-2024
+40-59,Male,Cancer,Negative,P-7b584bbe,ZIP 4-6,2022-2024
+60-79,Female,Hypertension,Positive,P-ecf9f473,ZIP 7-9,2022-2024
+60-79,Female,Asthma,Positive,P-ecf9f473,ZIP 7-9,2019-2021
+60-79,Female,Cancer,Positive,P-ecf9f473,ZIP 7-9,2022-2024
+40-59,Male,COVID-19,Negative,P-59a64868,ZIP 4-6,2019-2021
+40-59,Male,Asthma,Positive,P-59a64868,ZIP 4-6,2019-2021
+40-59,Male,Heart Disease,Negative,P-59a64868,ZIP 4-6,2022-2024
+40-59,Male,Cancer,Positive,P-59a64868,ZIP 4-6,2022-2024
+40-59,Male,Cancer,Positive,P-59a64868,ZIP 4-6,2019-2021
+20-39,Male,Cancer,Positive,P-187c97a6,ZIP 1-3,2022-2024
+20-39,Male,COVID-19,Positive,P-187c97a6,ZIP 1-3,2022-2024
+20-39,Male,Heart Disease,Negative,P-187c97a6,ZIP 1-3,2022-2024
+20-39,Male,Hypertension,Positive,P-187c97a6,ZIP 1-3,2019-2021
+20-39,Male,Cancer,Negative,P-187c97a6,ZIP 1-3,2019-2021
+60-79,Male,Hypertension,Negative,P-115052c1,ZIP 4-6,2019-2021
+60-79,Male,Diabetes,Negative,P-115052c1,ZIP 4-6,2022-2024
+60-79,Male,COVID-19,Negative,P-115052c1,ZIP 4-6,2022-2024
+60-79,Male,Cancer,Negative,P-115052c1,ZIP 4-6,2022-2024
+40-59,Female,Hypertension,Positive,P-92c31388,ZIP 7-9,2019-2021
+40-59,Female,Cancer,Positive,P-92c31388,ZIP 7-9,2019-2021
+40-59,Female,Heart Disease,Negative,P-92c31388,ZIP 7-9,2019-2021
+40-59,Female,COVID-19,Negative,P-92c31388,ZIP 7-9,2019-2021
+40-59,Female,Diabetes,Negative,P-92c31388,ZIP 7-9,2022-2024
+40-59,Female,Cancer,Negative,P-92c31388,ZIP 7-9,2019-2021
+20-39,Male,Cancer,Negative,P-a59f8c06,ZIP 1-3,2022-2024
+20-39,Male,Diabetes,Positive,P-a59f8c06,ZIP 1-3,2022-2024
+20-39,Male,Heart Disease,Negative,P-a59f8c06,ZIP 1-3,2019-2021
+20-39,Male,Asthma,Positive,P-a59f8c06,ZIP 1-3,2022-2024
+20-39,Male,Cancer,Negative,P-a59f8c06,ZIP 1-3,2022-2024
+40-59,Female,Asthma,Positive,P-c6a99d35,ZIP 7-9,2019-2021
+40-59,Female,Cancer,Positive,P-c6a99d35,ZIP 7-9,2022-2024
+20-39,Female,Asthma,Positive,P-e0cdc8ee,ZIP 1-3,2022-2024
+20-39,Female,Heart Disease,Positive,P-e0cdc8ee,ZIP 1-3,2022-2024
+20-39,Female,Hypertension,Negative,P-e0cdc8ee,ZIP 1-3,2022-2024
+20-39,Female,Diabetes,Negative,P-e0cdc8ee,ZIP 1-3,2022-2024
+20-39,Female,Cancer,Positive,P-e0cdc8ee,ZIP 1-3,2022-2024
+60-79,Male,Asthma,Positive,P-287b7df8,ZIP 4-6,2019-2021
+60-79,Male,Hypertension,Negative,P-287b7df8,ZIP 4-6,2019-2021
+60-79,Male,Heart Disease,Positive,P-287b7df8,ZIP 4-6,2019-2021
+60-79,Male,Cancer,Positive,P-287b7df8,ZIP 4-6,2019-2021
+20-39,Female,Diabetes,Positive,P-60a0e531,ZIP 7-9,2019-2021
+20-39,Female,Asthma,Negative,P-60a0e531,ZIP 7-9,2019-2021
+20-39,Female,Heart Disease,Negative,P-60a0e531,ZIP 7-9,2022-2024
+20-39,Female,Cancer,Positive,P-60a0e531,ZIP 7-9,2019-2021
+20-39,Female,Cancer,Positive,P-60a0e531,ZIP 7-9,2019-2021
+60-79,Male,COVID-19,Negative,P-4f8262db,ZIP 7-9,2019-2021
+60-79,Male,Hypertension,Positive,P-4f8262db,ZIP 7-9,2019-2021
+60-79,Male,Cancer,Positive,P-4f8262db,ZIP 7-9,2019-2021
+60-79,Male,Asthma,Positive,P-4f8262db,ZIP 7-9,2019-2021
+60-79,Male,Cancer,Positive,P-4f8262db,ZIP 7-9,2019-2021
+20-39,Male,Diabetes,Negative,P-faa3058d,ZIP 7-9,2022-2024
+20-39,Male,Heart Disease,Negative,P-faa3058d,ZIP 7-9,2019-2021
+20-39,Male,Cancer,Negative,P-faa3058d,ZIP 7-9,2019-2021
+20-39,Male,Hypertension,Positive,P-faa3058d,ZIP 7-9,2022-2024
+20-39,Male,Cancer,Negative,P-faa3058d,ZIP 7-9,2022-2024
+40-59,Male,COVID-19,Positive,P-e6d3b9af,ZIP 1-3,2019-2021
+40-59,Male,Heart Disease,Negative,P-e6d3b9af,ZIP 1-3,2019-2021
+40-59,Male,Hypertension,Negative,P-e6d3b9af,ZIP 1-3,2019-2021
+40-59,Male,Asthma,Positive,P-e6d3b9af,ZIP 1-3,2022-2024
+40-59,Male,Cancer,Positive,P-e6d3b9af,ZIP 1-3,2019-2021
+20-39,Male,Hypertension,Negative,P-752d961d,ZIP 4-6,2022-2024
+20-39,Male,Cancer,Positive,P-752d961d,ZIP 4-6,2022-2024
+20-39,Male,Diabetes,Positive,P-752d961d,ZIP 4-6,2022-2024
+20-39,Male,Cancer,Positive,P-752d961d,ZIP 4-6,2022-2024
+20-39,Female,Hypertension,Positive,P-59ed7f58,ZIP 1-3,2022-2024
+20-39,Female,Diabetes,Positive,P-59ed7f58,ZIP 1-3,2022-2024
+20-39,Female,Asthma,Positive,P-59ed7f58,ZIP 1-3,2019-2021
+20-39,Female,Cancer,Negative,P-59ed7f58,ZIP 1-3,2019-2021
+20-39,Female,Heart Disease,Negative,P-59ed7f58,ZIP 1-3,2019-2021
+20-39,Female,Cancer,Positive,P-59ed7f58,ZIP 1-3,2022-2024
+40-59,Female,Hypertension,Negative,P-7acf2091,ZIP 7-9,2022-2024
+40-59,Female,COVID-19,Positive,P-7acf2091,ZIP 7-9,2022-2024
+40-59,Female,Cancer,Positive,P-7acf2091,ZIP 7-9,2022-2024
+40-59,Female,Heart Disease,Positive,P-7acf2091,ZIP 7-9,2022-2024
+40-59,Female,Diabetes,Negative,P-7acf2091,ZIP 7-9,2019-2021
+40-59,Female,Cancer,Positive,P-7acf2091,ZIP 7-9,2019-2021
+20-39,Male,Diabetes,Positive,P-9436f528,ZIP 7-9,2019-2021
+20-39,Male,Asthma,Positive,P-9436f528,ZIP 7-9,2022-2024
+20-39,Male,Cancer,Negative,P-9436f528,ZIP 7-9,2019-2021
+20-39,Male,Asthma,Negative,P-1f9f461b,ZIP 7-9,2019-2021
+20-39,Male,Cancer,Negative,P-1f9f461b,ZIP 7-9,2019-2021
+40-59,Female,Diabetes,Negative,P-cc487963,ZIP 1-3,2019-2021
+40-59,Female,Hypertension,Negative,P-cc487963,ZIP 1-3,2019-2021
+20-39,Female,COVID-19,Negative,P-3d8073d4,ZIP 1-3,2022-2024
+20-39,Female,Cancer,Negative,P-3d8073d4,ZIP 1-3,2019-2021
+20-39,Female,Hypertension,Positive,P-3d8073d4,ZIP 1-3,2019-2021
+20-39,Female,Cancer,Negative,P-3d8073d4,ZIP 1-3,2019-2021
+60-79,Female,Diabetes,Negative,P-b14c7b5a,ZIP 4-6,2022-2024
+60-79,Female,Cancer,Positive,P-b14c7b5a,ZIP 4-6,2019-2021
+60-79,Female,Hypertension,Negative,P-b14c7b5a,ZIP 4-6,2022-2024
+60-79,Female,Cancer,Negative,P-b14c7b5a,ZIP 4-6,2019-2021
+60-79,Female,Cancer,Positive,P-8accd735,ZIP 1-3,2022-2024
+60-79,Female,Asthma,Negative,P-8accd735,ZIP 1-3,2022-2024
+60-79,Female,Diabetes,Negative,P-8accd735,ZIP 1-3,2019-2021
+60-79,Female,COVID-19,Negative,P-8accd735,ZIP 1-3,2019-2021
+60-79,Female,Heart Disease,Positive,P-8accd735,ZIP 1-3,2022-2024
+60-79,Female,Cancer,Negative,P-8accd735,ZIP 1-3,2022-2024
+20-39,Male,COVID-19,Positive,P-667c9904,ZIP 4-6,2022-2024
+20-39,Male,Cancer,Positive,P-667c9904,ZIP 4-6,2019-2021
+20-39,Male,Heart Disease,Negative,P-667c9904,ZIP 4-6,2019-2021
+20-39,Male,Asthma,Negative,P-667c9904,ZIP 4-6,2022-2024
+20-39,Male,Hypertension,Negative,P-667c9904,ZIP 4-6,2019-2021
+20-39,Male,Cancer,Negative,P-667c9904,ZIP 4-6,2019-2021
+40-59,Female,Hypertension,Positive,P-f73b0965,ZIP 7-9,2019-2021
+40-59,Female,Heart Disease,Positive,P-f73b0965,ZIP 7-9,2019-2021
+40-59,Female,Cancer,Negative,P-f73b0965,ZIP 7-9,2022-2024
+40-59,Female,Asthma,Negative,P-f73b0965,ZIP 7-9,2022-2024
+40-59,Female,Diabetes,Positive,P-f73b0965,ZIP 7-9,2019-2021
+40-59,Female,Cancer,Positive,P-f73b0965,ZIP 7-9,2019-2021
+40-59,Male,COVID-19,Negative,P-ec498d5b,ZIP 1-3,2019-2021
+40-59,Male,Cancer,Negative,P-ec498d5b,ZIP 1-3,2022-2024
+20-39,Male,Diabetes,Positive,P-d1605ca6,ZIP 1-3,2022-2024
+20-39,Male,Cancer,Positive,P-d1605ca6,ZIP 1-3,2019-2021
+20-39,Male,Hypertension,Negative,P-d1605ca6,ZIP 1-3,2022-2024
+20-39,Male,COVID-19,Positive,P-d1605ca6,ZIP 1-3,2022-2024
+20-39,Male,Heart Disease,Positive,P-d1605ca6,ZIP 1-3,2019-2021
+20-39,Male,Cancer,Positive,P-d1605ca6,ZIP 1-3,2022-2024
+40-59,Male,Heart Disease,Negative,P-ab4d2dad,ZIP 4-6,2019-2021
+40-59,Male,Asthma,Negative,P-ab4d2dad,ZIP 4-6,2022-2024
+40-59,Male,Hypertension,Positive,P-ab4d2dad,ZIP 4-6,2019-2021
+40-59,Male,Cancer,Negative,P-ab4d2dad,ZIP 4-6,2022-2024
+20-39,Male,Hypertension,Negative,P-9c796136,ZIP 1-3,2019-2021
+20-39,Male,Cancer,Negative,P-9c796136,ZIP 1-3,2019-2021
+20-39,Female,COVID-19,Positive,P-6f540748,ZIP 7-9,2022-2024
+20-39,Female,Hypertension,Negative,P-6f540748,ZIP 7-9,2019-2021
+20-39,Female,Cancer,Negative,P-6f540748,ZIP 7-9,2019-2021
+20-39,Female,Cancer,Positive,P-6f540748,ZIP 7-9,2022-2024
+20-39,Male,COVID-19,Negative,P-367a4e9d,ZIP 4-6,2022-2024
+20-39,Male,Heart Disease,Positive,P-367a4e9d,ZIP 4-6,2019-2021
+20-39,Male,Hypertension,Negative,P-367a4e9d,ZIP 4-6,2022-2024
+20-39,Male,Cancer,Positive,P-367a4e9d,ZIP 4-6,2022-2024
+20-39,Male,Diabetes,Positive,P-367a4e9d,ZIP 4-6,2022-2024
+20-39,Male,Cancer,Positive,P-367a4e9d,ZIP 4-6,2022-2024
+40-59,Female,Asthma,Positive,P-64bdd63d,ZIP 7-9,2019-2021
+40-59,Female,Hypertension,Negative,P-64bdd63d,ZIP 7-9,2019-2021
+40-59,Female,Heart Disease,Positive,P-64bdd63d,ZIP 7-9,2022-2024
+40-59,Female,Cancer,Positive,P-64bdd63d,ZIP 7-9,2022-2024
+20-39,Female,Heart Disease,Negative,P-9579b29e,ZIP 7-9,2019-2021
+20-39,Female,Hypertension,Negative,P-9579b29e,ZIP 7-9,2019-2021
+20-39,Female,Cancer,Positive,P-9579b29e,ZIP 7-9,2022-2024
+20-39,Male,Asthma,Positive,P-649d2547,ZIP 4-6,2019-2021
+20-39,Male,Hypertension,Positive,P-649d2547,ZIP 4-6,2022-2024
+20-39,Male,Cancer,Negative,P-649d2547,ZIP 4-6,2022-2024
+60-79,Female,Cancer,Positive,P-c24c047c,ZIP 1-3,2022-2024
+60-79,Female,Cancer,Positive,P-c24c047c,ZIP 1-3,2019-2021
+20-39,Male,Asthma,Positive,P-954c2bd2,ZIP 7-9,2019-2021
+20-39,Male,Cancer,Negative,P-954c2bd2,ZIP 7-9,2022-2024
+20-39,Male,COVID-19,Negative,P-954c2bd2,ZIP 7-9,2019-2021
+20-39,Male,Hypertension,Negative,P-954c2bd2,ZIP 7-9,2019-2021
+20-39,Male,Heart Disease,Positive,P-954c2bd2,ZIP 7-9,2022-2024
+20-39,Male,Cancer,Negative,P-954c2bd2,ZIP 7-9,2022-2024
+60-79,Male,Heart Disease,Negative,P-02be4224,ZIP 7-9,2022-2024
+60-79,Male,Cancer,Negative,P-02be4224,ZIP 7-9,2019-2021
+40-59,Male,COVID-19,Negative,P-acb25b56,ZIP 4-6,2019-2021
+40-59,Male,Cancer,Negative,P-acb25b56,ZIP 4-6,2022-2024
+40-59,Male,Hypertension,Negative,P-a9f2ef85,ZIP 4-6,2022-2024
+40-59,Male,Cancer,Negative,P-a9f2ef85,ZIP 4-6,2019-2021
+60-79,Male,COVID-19,Positive,P-ac199991,ZIP 1-3,2019-2021
+60-79,Male,Asthma,Negative,P-ac199991,ZIP 1-3,2019-2021
+60-79,Male,Cancer,Negative,P-ac199991,ZIP 1-3,2022-2024
+60-79,Male,Heart Disease,Negative,P-ac199991,ZIP 1-3,2019-2021
+60-79,Male,Hypertension,Positive,P-ac199991,ZIP 1-3,2022-2024
+60-79,Male,Cancer,Negative,P-ac199991,ZIP 1-3,2022-2024
+20-39,Male,Asthma,Positive,P-9d92aeb5,ZIP 1-3,2019-2021
+20-39,Male,Cancer,Positive,P-9d92aeb5,ZIP 1-3,2019-2021
+20-39,Female,Cancer,Negative,P-019b8ddb,ZIP 1-3,2019-2021
+20-39,Female,Heart Disease,Negative,P-019b8ddb,ZIP 1-3,2019-2021
+20-39,Female,Cancer,Positive,P-019b8ddb,ZIP 1-3,2022-2024
+20-39,Female,Asthma,Negative,P-04c16646,ZIP 7-9,2019-2021
+20-39,Female,Cancer,Negative,P-04c16646,ZIP 7-9,2019-2021
+20-39,Female,Cancer,Positive,P-04c16646,ZIP 7-9,2019-2021
+20-39,Male,COVID-19,Positive,P-d5276419,ZIP 1-3,2022-2024
+20-39,Male,Asthma,Negative,P-d5276419,ZIP 1-3,2022-2024
+20-39,Male,Cancer,Negative,P-d5276419,ZIP 1-3,2022-2024
+20-39,Male,Cancer,Positive,P-d5276419,ZIP 1-3,2022-2024
+40-59,Female,Asthma,Positive,P-546dafb0,ZIP 7-9,2019-2021
+40-59,Female,Heart Disease,Negative,P-546dafb0,ZIP 7-9,2019-2021
+40-59,Female,Diabetes,Positive,P-546dafb0,ZIP 7-9,2022-2024
+40-59,Female,COVID-19,Positive,P-546dafb0,ZIP 7-9,2019-2021
+40-59,Female,Hypertension,Negative,P-546dafb0,ZIP 7-9,2019-2021
+40-59,Female,Cancer,Negative,P-546dafb0,ZIP 7-9,2022-2024
+60-79,Male,Cancer,Negative,P-330f472a,ZIP 7-9,2022-2024
+60-79,Male,Cancer,Negative,P-330f472a,ZIP 7-9,2022-2024
+60-79,Male,Heart Disease,Positive,P-7dc9455a,ZIP 4-6,2022-2024
+60-79,Male,Asthma,Positive,P-7dc9455a,ZIP 4-6,2019-2021
+60-79,Male,COVID-19,Negative,P-7dc9455a,ZIP 4-6,2022-2024
+60-79,Male,Diabetes,Positive,P-7dc9455a,ZIP 4-6,2019-2021
+60-79,Male,Cancer,Positive,P-7dc9455a,ZIP 4-6,2022-2024
+40-59,Male,Diabetes,Positive,P-f7a6c64b,ZIP 7-9,2022-2024
+40-59,Male,Heart Disease,Positive,P-f7a6c64b,ZIP 7-9,2022-2024
+20-39,Female,Diabetes,Negative,P-d5498b2b,ZIP 1-3,2019-2021
+20-39,Female,Cancer,Negative,P-d5498b2b,ZIP 1-3,2019-2021
+60-79,Male,COVID-19,Positive,P-d4efeee6,ZIP 4-6,2022-2024
+60-79,Male,Cancer,Positive,P-d4efeee6,ZIP 4-6,2022-2024
+60-79,Male,Asthma,Positive,P-d4efeee6,ZIP 4-6,2022-2024
+60-79,Male,Heart Disease,Positive,P-d4efeee6,ZIP 4-6,2022-2024
+60-79,Male,Cancer,Negative,P-d4efeee6,ZIP 4-6,2019-2021
+60-79,Male,Cancer,Negative,P-39753f19,ZIP 7-9,2022-2024
+60-79,Male,Diabetes,Positive,P-39753f19,ZIP 7-9,2022-2024
+60-79,Male,Heart Disease,Negative,P-39753f19,ZIP 7-9,2022-2024
+60-79,Male,COVID-19,Negative,P-39753f19,ZIP 7-9,2022-2024
+60-79,Male,Hypertension,Positive,P-39753f19,ZIP 7-9,2019-2021
+60-79,Male,Cancer,Negative,P-39753f19,ZIP 7-9,2019-2021
+40-59,Female,Asthma,Negative,P-6c87a46b,ZIP 4-6,2019-2021
+40-59,Female,COVID-19,Negative,P-6c87a46b,ZIP 4-6,2022-2024
+40-59,Female,Cancer,Positive,P-6c87a46b,ZIP 4-6,2022-2024
+40-59,Female,Diabetes,Negative,P-851f5914,ZIP 1-3,2019-2021
+40-59,Female,Cancer,Positive,P-851f5914,ZIP 1-3,2019-2021
+40-59,Female,Cancer,Positive,P-851f5914,ZIP 1-3,2019-2021
+20-39,Male,Diabetes,Negative,P-ad255dc7,ZIP 4-6,2019-2021
+20-39,Male,Cancer,Positive,P-ad255dc7,ZIP 4-6,2022-2024
+20-39,Male,Heart Disease,Negative,P-ad255dc7,ZIP 4-6,2019-2021
+20-39,Male,COVID-19,Positive,P-ad255dc7,ZIP 4-6,2019-2021
+20-39,Male,Cancer,Negative,P-ad255dc7,ZIP 4-6,2022-2024
+20-39,Female,Asthma,Positive,P-7073c588,ZIP 7-9,2022-2024
+20-39,Female,Cancer,Positive,P-7073c588,ZIP 7-9,2022-2024
+20-39,Female,Cancer,Positive,P-7073c588,ZIP 7-9,2019-2021
+20-39,Female,Hypertension,Positive,P-4ef0f842,ZIP 1-3,2019-2021
+20-39,Female,Diabetes,Positive,P-4ef0f842,ZIP 1-3,2022-2024
+20-39,Female,COVID-19,Negative,P-4ef0f842,ZIP 1-3,2022-2024
+20-39,Female,Heart Disease,Negative,P-4ef0f842,ZIP 1-3,2019-2021
+20-39,Female,Asthma,Negative,P-4ef0f842,ZIP 1-3,2022-2024
+20-39,Female,Cancer,Positive,P-4ef0f842,ZIP 1-3,2022-2024
+60-79,Female,Diabetes,Positive,P-1d8f44ff,ZIP 7-9,2019-2021
+60-79,Female,COVID-19,Positive,P-1d8f44ff,ZIP 7-9,2022-2024
+60-79,Female,Asthma,Positive,P-1d8f44ff,ZIP 7-9,2022-2024
+60-79,Female,Cancer,Negative,P-1d8f44ff,ZIP 7-9,2019-2021
+60-79,Female,Heart Disease,Positive,P-1d8f44ff,ZIP 7-9,2022-2024
+60-79,Female,Cancer,Positive,P-1d8f44ff,ZIP 7-9,2022-2024
+20-39,Female,Asthma,Negative,P-72674082,ZIP 7-9,2022-2024
+20-39,Female,Cancer,Positive,P-72674082,ZIP 7-9,2022-2024
+20-39,Female,Diabetes,Positive,P-72674082,ZIP 7-9,2022-2024
+20-39,Female,Heart Disease,Positive,P-72674082,ZIP 7-9,2022-2024
+20-39,Female,Hypertension,Negative,P-72674082,ZIP 7-9,2019-2021
+20-39,Female,Cancer,Positive,P-72674082,ZIP 7-9,2022-2024
+20-39,Male,Cancer,Negative,P-f808cf20,ZIP 7-9,2022-2024
+20-39,Male,Hypertension,Negative,P-f808cf20,ZIP 7-9,2019-2021
+20-39,Male,Cancer,Positive,P-f808cf20,ZIP 7-9,2019-2021
+60-79,Female,Heart Disease,Negative,P-0420fa82,ZIP 4-6,2022-2024
+60-79,Female,Asthma,Negative,P-0420fa82,ZIP 4-6,2022-2024
+60-79,Female,Diabetes,Positive,P-0420fa82,ZIP 4-6,2019-2021
+60-79,Female,Hypertension,Positive,P-0420fa82,ZIP 4-6,2019-2021
+60-79,Female,COVID-19,Positive,P-0420fa82,ZIP 4-6,2022-2024
+60-79,Female,Cancer,Negative,P-0420fa82,ZIP 4-6,2022-2024
+20-39,Male,Diabetes,Positive,P-c14fae9b,ZIP 1-3,2019-2021
+20-39,Male,Cancer,Positive,P-c14fae9b,ZIP 1-3,2019-2021
+20-39,Male,Hypertension,Positive,P-c14fae9b,ZIP 1-3,2022-2024
+20-39,Male,Heart Disease,Negative,P-c14fae9b,ZIP 1-3,2022-2024
+20-39,Male,Cancer,Negative,P-c14fae9b,ZIP 1-3,2022-2024
+20-39,Female,COVID-19,Positive,P-2549f057,ZIP 4-6,2022-2024
+20-39,Female,Diabetes,Negative,P-2549f057,ZIP 4-6,2022-2024
+20-39,Female,Heart Disease,Positive,P-2549f057,ZIP 4-6,2019-2021
+20-39,Female,Cancer,Positive,P-2549f057,ZIP 4-6,2022-2024
+40-59,Male,Cancer,Negative,P-f6554af0,ZIP 7-9,2022-2024
+20-39,Male,Diabetes,Positive,P-95de13f7,ZIP 4-6,2022-2024
+20-39,Male,Hypertension,Positive,P-95de13f7,ZIP 4-6,2022-2024
+20-39,Male,COVID-19,Negative,P-95de13f7,ZIP 4-6,2019-2021
+20-39,Male,Cancer,Negative,P-95de13f7,ZIP 4-6,2019-2021
+20-39,Male,Asthma,Positive,P-95de13f7,ZIP 4-6,2022-2024
+20-39,Male,Cancer,Negative,P-95de13f7,ZIP 4-6,2022-2024
+20-39,Male,Cancer,Positive,P-f1c7d982,ZIP 7-9,2022-2024
+20-39,Male,Cancer,Negative,P-f1c7d982,ZIP 7-9,2022-2024
+60-79,Female,Hypertension,Positive,P-789bee89,ZIP 1-3,2022-2024
+60-79,Female,Cancer,Positive,P-789bee89,ZIP 1-3,2019-2021
+60-79,Female,Cancer,Positive,P-789bee89,ZIP 1-3,2019-2021
+40-59,Male,Diabetes,Negative,P-a6890551,ZIP 4-6,2022-2024
+40-59,Male,Asthma,Positive,P-a6890551,ZIP 4-6,2019-2021
+40-59,Male,Cancer,Positive,P-a6890551,ZIP 4-6,2019-2021
+40-59,Female,Cancer,Negative,P-6ef4a3ef,ZIP 7-9,2022-2024
+40-59,Female,COVID-19,Negative,P-6ef4a3ef,ZIP 7-9,2022-2024
+40-59,Female,Cancer,Positive,P-6ef4a3ef,ZIP 7-9,2019-2021
+40-59,Female,Diabetes,Negative,P-95f5be75,ZIP 4-6,2019-2021
+40-59,Female,Cancer,Negative,P-95f5be75,ZIP 4-6,2019-2021
+40-59,Female,Hypertension,Positive,P-95f5be75,ZIP 4-6,2022-2024
+40-59,Female,Heart Disease,Positive,P-95f5be75,ZIP 4-6,2022-2024
+40-59,Female,Cancer,Positive,P-95f5be75,ZIP 4-6,2022-2024
+20-39,Female,Hypertension,Negative,P-2351084c,ZIP 1-3,2022-2024
+20-39,Female,COVID-19,Negative,P-2351084c,ZIP 1-3,2022-2024
+20-39,Female,Cancer,Negative,P-2351084c,ZIP 1-3,2022-2024
+20-39,Female,Heart Disease,Negative,P-2351084c,ZIP 1-3,2019-2021
+20-39,Female,Asthma,Negative,P-2351084c,ZIP 1-3,2019-2021
+20-39,Female,Cancer,Positive,P-2351084c,ZIP 1-3,2022-2024
+60-79,Male,Diabetes,Negative,P-aa8e57a4,ZIP 1-3,2019-2021
+60-79,Male,Heart Disease,Negative,P-aa8e57a4,ZIP 1-3,2022-2024
+60-79,Male,Asthma,Positive,P-aa8e57a4,ZIP 1-3,2022-2024
+60-79,Male,Cancer,Positive,P-aa8e57a4,ZIP 1-3,2022-2024
+40-59,Female,Cancer,Positive,P-fb4d2944,ZIP 4-6,2022-2024
+40-59,Female,COVID-19,Negative,P-fb4d2944,ZIP 4-6,2019-2021
+40-59,Female,Diabetes,Positive,P-fb4d2944,ZIP 4-6,2019-2021
+40-59,Female,Asthma,Negative,P-fb4d2944,ZIP 4-6,2022-2024
+40-59,Female,Hypertension,Positive,P-fb4d2944,ZIP 4-6,2022-2024
+40-59,Female,Cancer,Negative,P-fb4d2944,ZIP 4-6,2019-2021
+40-59,Male,Hypertension,Positive,P-b4e63ab8,ZIP 1-3,2019-2021
+40-59,Male,COVID-19,Positive,P-b4e63ab8,ZIP 1-3,2022-2024
+40-59,Male,Cancer,Positive,P-b4e63ab8,ZIP 1-3,2022-2024
+40-59,Male,Diabetes,Negative,P-b4e63ab8,ZIP 1-3,2019-2021
+40-59,Male,Asthma,Positive,P-b4e63ab8,ZIP 1-3,2019-2021
+40-59,Male,Cancer,Negative,P-b4e63ab8,ZIP 1-3,2022-2024
+20-39,Female,Asthma,Negative,P-5d2334b4,ZIP 4-6,2022-2024
+20-39,Female,Cancer,Positive,P-5d2334b4,ZIP 4-6,2019-2021
+20-39,Female,Heart Disease,Negative,P-d4bbe93a,ZIP 7-9,2022-2024
+20-39,Female,Asthma,Positive,P-d4bbe93a,ZIP 7-9,2019-2021
+20-39,Female,Cancer,Negative,P-d4bbe93a,ZIP 7-9,2022-2024
+40-59,Female,Hypertension,Negative,P-28f36f8c,ZIP 4-6,2019-2021
+40-59,Female,Diabetes,Negative,P-28f36f8c,ZIP 4-6,2022-2024
+40-59,Female,Cancer,Positive,P-28f36f8c,ZIP 4-6,2022-2024
+40-59,Male,Cancer,Negative,P-db1f0a19,ZIP 1-3,2022-2024
+40-59,Male,Hypertension,Negative,P-db1f0a19,ZIP 1-3,2019-2021
+40-59,Male,Cancer,Positive,P-db1f0a19,ZIP 1-3,2019-2021
+40-59,Female,Asthma,Positive,P-55b4e211,ZIP 7-9,2022-2024
+40-59,Female,Cancer,Positive,P-55b4e211,ZIP 7-9,2019-2021
+40-59,Female,Cancer,Positive,P-55b4e211,ZIP 7-9,2019-2021

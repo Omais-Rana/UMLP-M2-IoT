@@ -1,0 +1,415 @@
+Name,Age,Sex,Zip_Code,Disease,Test_Date,Result
+Andrew Robinson,57,Male,64217,Hypertension,2021-10-31,Negative
+Andrew Robinson,57,Male,64219,Asthma,2021-03-15,Positive
+Andrew Robinson,57,Male,64221,COVID-19,2022-06-02,Positive
+Andrew Robinson,57,Male,64221,Cancer,2023-01-23,Positive
+Roy Rodriguez,79,Male,24012,Diabetes,2020-01-12,Positive
+Roy Rodriguez,79,Male,24013,COVID-19,2020-03-06,Positive
+Roy Rodriguez,79,Male,24011,Hypertension,2022-09-12,Negative
+Roy Rodriguez,79,Male,24009,Cancer,2024-01-08,Positive
+Roy Rodriguez,79,Male,24010,Cancer,2023-05-11,Negative
+Daniel Cook,39,Male,19260,Cancer,2020-01-16,Positive
+Daniel Cook,39,Male,19258,Asthma,2021-11-01,Positive
+Daniel Cook,39,Male,19260,COVID-19,2023-06-07,Positive
+Daniel Cook,39,Male,19257,Diabetes,2024-07-30,Negative
+Daniel Cook,39,Male,19257,Cancer,2023-07-12,Negative
+Bobby Koch,76,Female,21040,Cancer,2022-04-16,Negative
+Bobby Koch,76,Female,21039,COVID-19,2022-02-11,Negative
+Bobby Koch,76,Female,21041,Diabetes,2019-11-06,Positive
+Bobby Koch,76,Female,21042,Cancer,2021-08-20,Positive
+Kayla Macdonald,73,Male,34311,Hypertension,2020-11-04,Positive
+Kayla Macdonald,73,Male,34310,COVID-19,2023-10-25,Negative
+Kayla Macdonald,73,Male,34313,Heart Disease,2024-09-07,Positive
+Kayla Macdonald,73,Male,34311,Diabetes,2021-07-19,Negative
+Kayla Macdonald,73,Male,34310,Cancer,2023-06-19,Negative
+Michelle Wright,77,Female,50055,Hypertension,2021-06-21,Negative
+Michelle Wright,77,Female,50057,Cancer,2020-09-14,Negative
+Michelle Wright,77,Female,50052,Asthma,2023-11-16,Positive
+Michelle Wright,77,Female,50053,Cancer,2022-01-25,Negative
+Sharon Jones,30,Male,15265,Hypertension,2023-03-26,Negative
+Sharon Jones,30,Male,15263,Asthma,2020-01-10,Negative
+Sharon Jones,30,Male,15266,Heart Disease,2021-09-01,Negative
+Sharon Jones,30,Male,15260,Diabetes,2022-06-08,Negative
+Sharon Jones,30,Male,15263,Cancer,2023-08-18,Negative
+Diane Reese,49,Female,78322,Hypertension,2023-11-20,Negative
+Diane Reese,49,Female,78323,Cancer,2023-07-11,Positive
+Logan Ross,33,Female,42068,Cancer,2020-12-08,Positive
+Logan Ross,33,Female,42070,Hypertension,2021-06-21,Negative
+Logan Ross,33,Female,42065,Asthma,2024-06-16,Negative
+Logan Ross,33,Female,42066,Heart Disease,2020-09-26,Negative
+Logan Ross,33,Female,42067,COVID-19,2023-01-21,Negative
+Logan Ross,33,Female,42067,Cancer,2021-10-17,Negative
+Samuel Riggs,63,Female,69013,Hypertension,2021-02-01,Positive
+Samuel Riggs,63,Female,69013,Diabetes,2024-02-25,Negative
+Samuel Riggs,63,Female,69011,Cancer,2022-07-08,Negative
+Samuel Riggs,63,Female,69007,Heart Disease,2023-12-05,Positive
+Samuel Riggs,63,Female,69007,Asthma,2024-04-22,Positive
+Samuel Riggs,63,Female,69012,Cancer,2020-04-20,Positive
+Amanda Miller,26,Male,27955,Asthma,2022-03-16,Negative
+Amanda Miller,26,Male,27957,COVID-19,2022-07-18,Negative
+Amanda Miller,26,Male,27956,Hypertension,2024-03-18,Negative
+Amanda Miller,26,Male,27955,Diabetes,2023-05-19,Negative
+Amanda Miller,26,Male,27956,Heart Disease,2022-04-23,Positive
+Amanda Miller,26,Male,27957,Cancer,2022-10-10,Negative
+Scott Wilson,80,Female,50563,Cancer,2023-06-02,Negative
+Scott Wilson,80,Female,50569,Asthma,2020-02-18,Negative
+Scott Wilson,80,Female,50566,Diabetes,2024-08-09,Negative
+Scott Wilson,80,Female,50568,COVID-19,2022-02-28,Negative
+Scott Wilson,80,Female,50567,Heart Disease,2022-11-18,Positive
+Scott Wilson,80,Female,50569,Cancer,2022-01-18,Negative
+Kristin Coffey,34,Male,92044,Heart Disease,2023-01-11,Negative
+Kristin Coffey,34,Male,92042,COVID-19,2022-08-17,Positive
+Kristin Coffey,34,Male,92042,Cancer,2020-07-13,Negative
+Kristin Coffey,34,Male,92040,Diabetes,2024-01-08,Negative
+Kristin Coffey,34,Male,92041,Cancer,2020-01-09,Negative
+Chelsea Schmidt,62,Male,73856,Heart Disease,2020-09-22,Negative
+Chelsea Schmidt,62,Male,73859,Cancer,2022-01-07,Positive
+Chelsea Schmidt,62,Male,73860,Cancer,2023-11-17,Negative
+Joseph Nelson,54,Male,98387,Cancer,2024-04-05,Negative
+Joseph Nelson,54,Male,98387,Heart Disease,2020-11-23,Positive
+Joseph Nelson,54,Male,98383,COVID-19,2023-06-28,Negative
+Joseph Nelson,54,Male,98384,Cancer,2023-08-02,Positive
+Eric Carpenter,72,Male,24003,Hypertension,2021-11-24,Negative
+Eric Carpenter,72,Male,24002,Cancer,2022-12-28,Positive
+Eric Carpenter,72,Male,24008,Diabetes,2020-10-29,Negative
+Eric Carpenter,72,Male,24007,Cancer,2020-01-15,Positive
+Shawn Foster,75,Male,10033,COVID-19,2020-10-11,Negative
+Shawn Foster,75,Male,10033,Cancer,2022-07-18,Positive
+James Garcia,33,Female,59607,Heart Disease,2023-07-21,Negative
+James Garcia,33,Female,59604,Cancer,2021-04-15,Negative
+Crystal Wheeler,22,Male,30428,Asthma,2023-10-01,Positive
+Crystal Wheeler,22,Male,30429,Diabetes,2022-05-02,Negative
+Crystal Wheeler,22,Male,30430,Heart Disease,2021-03-15,Negative
+Crystal Wheeler,22,Male,30427,Cancer,2022-12-28,Negative
+Crystal Wheeler,22,Male,30426,COVID-19,2021-02-06,Negative
+Crystal Wheeler,22,Male,30431,Cancer,2022-08-21,Negative
+Stephen Simon,30,Female,97023,COVID-19,2021-09-13,Positive
+Stephen Simon,30,Female,97022,Cancer,2024-08-29,Negative
+John Campbell,75,Female,99410,Heart Disease,2019-12-26,Negative
+John Campbell,75,Female,99410,Diabetes,2022-10-08,Negative
+John Campbell,75,Female,99407,Asthma,2022-10-02,Negative
+John Campbell,75,Female,99409,Hypertension,2022-03-25,Negative
+John Campbell,75,Female,99409,Cancer,2019-11-16,Negative
+John Campbell,75,Female,99411,Cancer,2023-03-10,Positive
+Scott Gibson,42,Female,26698,Hypertension,2020-12-23,Positive
+Scott Gibson,42,Female,26699,Cancer,2022-02-21,Negative
+Claudia Robinson,55,Male,67556,COVID-19,2019-11-21,Positive
+Claudia Robinson,55,Male,67556,Heart Disease,2024-09-13,Negative
+Claudia Robinson,55,Male,67558,Cancer,2022-11-23,Negative
+April Martinez,75,Female,94216,Hypertension,2024-09-18,Positive
+April Martinez,75,Female,94218,Asthma,2021-04-15,Positive
+April Martinez,75,Female,94217,Cancer,2023-04-28,Positive
+Brett Richards,59,Male,64991,COVID-19,2020-10-16,Negative
+Brett Richards,59,Male,64997,Asthma,2021-11-30,Positive
+Brett Richards,59,Male,64997,Heart Disease,2023-12-23,Negative
+Brett Richards,59,Male,64992,Cancer,2023-06-19,Positive
+Brett Richards,59,Male,64996,Cancer,2020-11-15,Positive
+Wendy Young,23,Male,18247,Cancer,2023-03-10,Positive
+Wendy Young,23,Male,18250,COVID-19,2023-09-20,Positive
+Wendy Young,23,Male,18246,Heart Disease,2023-05-10,Negative
+Wendy Young,23,Male,18245,Hypertension,2021-04-05,Positive
+Wendy Young,23,Male,18249,Cancer,2021-08-28,Negative
+Jodi Wilson,77,Male,57705,Hypertension,2021-12-12,Negative
+Jodi Wilson,77,Male,57706,Diabetes,2022-07-28,Negative
+Jodi Wilson,77,Male,57707,COVID-19,2023-07-05,Negative
+Jodi Wilson,77,Male,57710,Cancer,2024-03-08,Negative
+Julian Liu,43,Female,75332,Hypertension,2020-08-09,Positive
+Julian Liu,43,Female,75332,Cancer,2020-09-22,Positive
+Julian Liu,43,Female,75330,Heart Disease,2020-10-26,Negative
+Julian Liu,43,Female,75331,COVID-19,2021-07-23,Negative
+Julian Liu,43,Female,75326,Diabetes,2022-04-29,Negative
+Julian Liu,43,Female,75326,Cancer,2021-06-21,Negative
+Michael Ortiz,22,Male,24194,Cancer,2023-09-27,Negative
+Michael Ortiz,22,Male,24193,Diabetes,2022-10-20,Positive
+Michael Ortiz,22,Male,24195,Heart Disease,2021-01-26,Negative
+Michael Ortiz,22,Male,24192,Asthma,2024-09-12,Positive
+Michael Ortiz,22,Male,24197,Cancer,2022-11-14,Negative
+William Perez,52,Female,88452,Asthma,2020-04-23,Positive
+William Perez,52,Female,88448,Cancer,2024-01-17,Positive
+Mario Wallace,31,Female,11703,Asthma,2022-12-06,Positive
+Mario Wallace,31,Female,11706,Heart Disease,2024-07-27,Positive
+Mario Wallace,31,Female,11702,Hypertension,2023-08-08,Negative
+Mario Wallace,31,Female,11701,Diabetes,2023-11-29,Negative
+Mario Wallace,31,Female,11703,Cancer,2022-09-26,Positive
+Melinda Mccoy,76,Male,52496,Asthma,2020-10-16,Positive
+Melinda Mccoy,76,Male,52491,Hypertension,2021-12-19,Negative
+Melinda Mccoy,76,Male,52493,Heart Disease,2020-10-29,Positive
+Melinda Mccoy,76,Male,52493,Cancer,2021-01-30,Positive
+Casey Craig,38,Female,86980,Diabetes,2019-12-12,Positive
+Casey Craig,38,Female,86983,Asthma,2021-11-18,Negative
+Casey Craig,38,Female,86979,Heart Disease,2024-06-19,Negative
+Casey Craig,38,Female,86984,Cancer,2021-08-13,Positive
+Casey Craig,38,Female,86982,Cancer,2020-11-15,Positive
+Elizabeth Rivera,63,Male,94295,COVID-19,2020-06-30,Negative
+Elizabeth Rivera,63,Male,94298,Hypertension,2020-04-14,Positive
+Elizabeth Rivera,63,Male,94292,Cancer,2021-12-23,Positive
+Elizabeth Rivera,63,Male,94297,Asthma,2021-07-24,Positive
+Elizabeth Rivera,63,Male,94298,Cancer,2020-04-03,Positive
+Claudia Foster,22,Male,80511,Diabetes,2022-04-27,Negative
+Claudia Foster,22,Male,80511,Heart Disease,2020-07-15,Negative
+Claudia Foster,22,Male,80513,Cancer,2019-11-27,Negative
+Claudia Foster,22,Male,80515,Hypertension,2023-08-10,Positive
+Claudia Foster,22,Male,80517,Cancer,2023-03-18,Negative
+Sarah Bright,50,Male,38762,COVID-19,2020-06-02,Positive
+Sarah Bright,50,Male,38763,Heart Disease,2020-12-28,Negative
+Sarah Bright,50,Male,38762,Hypertension,2020-07-25,Negative
+Sarah Bright,50,Male,38765,Asthma,2023-01-02,Positive
+Sarah Bright,50,Male,38761,Cancer,2021-11-22,Positive
+Daniel Castillo,31,Male,47017,Hypertension,2024-04-10,Negative
+Daniel Castillo,31,Male,47015,Cancer,2024-09-24,Positive
+Daniel Castillo,31,Male,47012,Diabetes,2023-03-24,Positive
+Daniel Castillo,31,Male,47015,Cancer,2022-09-19,Positive
+Kevin Collins,20,Female,25804,Hypertension,2022-02-11,Positive
+Kevin Collins,20,Female,25808,Diabetes,2022-08-02,Positive
+Kevin Collins,20,Female,25803,Asthma,2020-11-02,Positive
+Kevin Collins,20,Female,25804,Cancer,2020-12-18,Negative
+Kevin Collins,20,Female,25802,Heart Disease,2020-02-04,Negative
+Kevin Collins,20,Female,25802,Cancer,2024-04-10,Positive
+Robert Myers,56,Female,84857,Hypertension,2023-07-25,Negative
+Robert Myers,56,Female,84855,COVID-19,2023-07-20,Positive
+Robert Myers,56,Female,84858,Cancer,2024-04-14,Positive
+Robert Myers,56,Female,84861,Heart Disease,2023-06-01,Positive
+Robert Myers,56,Female,84858,Diabetes,2020-04-01,Negative
+Robert Myers,56,Female,84857,Cancer,2020-07-27,Positive
+Rebecca Rodriguez,27,Male,87746,Diabetes,2021-08-21,Positive
+Rebecca Rodriguez,27,Male,87747,Asthma,2022-06-19,Positive
+Rebecca Rodriguez,27,Male,87742,Cancer,2021-02-02,Negative
+John Barron,32,Male,83518,Asthma,2021-10-14,Negative
+John Barron,32,Male,83522,Cancer,2019-10-21,Negative
+Hailey Obrien,58,Female,23730,Diabetes,2021-06-15,Negative
+Hailey Obrien,58,Female,23733,Hypertension,2020-07-28,Negative
+Hailey Obrien,58,Female,23730,Asthma,2022-09-13,Positive
+Hailey Obrien,58,Female,23730,Cancer,2022-02-07,Positive
+Kristin Anderson,22,Female,32277,COVID-19,2022-10-25,Negative
+Kristin Anderson,22,Female,32274,Cancer,2021-09-06,Negative
+Kristin Anderson,22,Female,32278,Hypertension,2021-10-19,Positive
+Kristin Anderson,22,Female,32275,Cancer,2020-02-26,Negative
+George Coleman,60,Female,65599,Diabetes,2022-10-28,Negative
+George Coleman,60,Female,65595,Cancer,2021-08-02,Positive
+George Coleman,60,Female,65594,Hypertension,2023-01-22,Negative
+George Coleman,60,Female,65595,Cancer,2020-06-02,Negative
+Michelle Smith,74,Female,36374,Cancer,2023-10-14,Positive
+Michelle Smith,74,Female,36377,Asthma,2023-10-17,Negative
+Michelle Smith,74,Female,36376,Diabetes,2020-10-04,Negative
+Michelle Smith,74,Female,36373,COVID-19,2020-02-24,Negative
+Michelle Smith,74,Female,36374,Heart Disease,2023-03-10,Positive
+Michelle Smith,74,Female,36371,Cancer,2022-07-15,Negative
+Diana Middleton,27,Male,45356,COVID-19,2024-07-23,Positive
+Diana Middleton,27,Male,45351,Cancer,2019-11-16,Positive
+Diana Middleton,27,Male,45352,Heart Disease,2021-10-31,Negative
+Diana Middleton,27,Male,45355,Asthma,2024-08-29,Negative
+Diana Middleton,27,Male,45354,Hypertension,2020-08-20,Negative
+Diana Middleton,27,Male,45355,Cancer,2020-01-10,Negative
+Jessica Bryant,47,Female,88443,Hypertension,2021-09-08,Positive
+Jessica Bryant,47,Female,88447,Heart Disease,2019-11-15,Positive
+Jessica Bryant,47,Female,88447,Cancer,2022-10-03,Negative
+Jessica Bryant,47,Female,88444,Asthma,2022-12-14,Negative
+Jessica Bryant,47,Female,88444,Diabetes,2019-11-11,Positive
+Jessica Bryant,47,Female,88444,Cancer,2020-12-12,Positive
+Mary Coleman,41,Male,17698,COVID-19,2020-11-21,Negative
+Mary Coleman,41,Male,17694,Cancer,2022-01-15,Negative
+Justin Wyatt,34,Male,27924,Diabetes,2024-01-30,Positive
+Justin Wyatt,34,Male,27926,Cancer,2020-04-10,Positive
+Justin Wyatt,34,Male,27923,Hypertension,2024-04-24,Negative
+Justin Wyatt,34,Male,27924,COVID-19,2022-07-09,Positive
+Justin Wyatt,34,Male,27924,Heart Disease,2020-07-05,Positive
+Justin Wyatt,34,Male,27926,Cancer,2024-05-05,Positive
+Mark Bell,45,Male,46652,Heart Disease,2020-04-10,Negative
+Mark Bell,45,Male,46647,Asthma,2022-01-11,Negative
+Mark Bell,45,Male,46652,Hypertension,2019-11-20,Positive
+Mark Bell,45,Male,46649,Cancer,2024-10-11,Negative
+Shannon Parker,31,Male,15476,Hypertension,2021-02-03,Negative
+Shannon Parker,31,Male,15478,Cancer,2021-10-01,Negative
+Jason Schroeder,29,Female,82495,COVID-19,2022-10-28,Positive
+Jason Schroeder,29,Female,82493,Hypertension,2020-10-08,Negative
+Jason Schroeder,29,Female,82496,Cancer,2021-03-06,Negative
+Jason Schroeder,29,Female,82495,Cancer,2024-06-03,Positive
+Wendy Baldwin,20,Male,46683,COVID-19,2022-11-26,Negative
+Wendy Baldwin,20,Male,46688,Heart Disease,2019-12-20,Positive
+Wendy Baldwin,20,Male,46684,Hypertension,2023-07-23,Negative
+Wendy Baldwin,20,Male,46683,Cancer,2022-06-07,Positive
+Wendy Baldwin,20,Male,46687,Diabetes,2024-05-05,Positive
+Wendy Baldwin,20,Male,46685,Cancer,2022-05-06,Positive
+Keith Johnson,59,Female,83557,Asthma,2021-01-31,Positive
+Keith Johnson,59,Female,83555,Hypertension,2021-03-31,Negative
+Keith Johnson,59,Female,83561,Heart Disease,2023-11-08,Positive
+Keith Johnson,59,Female,83558,Cancer,2022-04-28,Positive
+Debra Dean,35,Female,82839,Heart Disease,2021-07-03,Negative
+Debra Dean,35,Female,82842,Hypertension,2021-08-08,Negative
+Debra Dean,35,Female,82842,Cancer,2022-10-05,Positive
+Timothy Nelson,26,Male,67388,Asthma,2021-07-19,Positive
+Timothy Nelson,26,Male,67386,Hypertension,2024-09-04,Positive
+Timothy Nelson,26,Male,67387,Cancer,2022-03-14,Negative
+Jeffery Haley,70,Female,20598,Cancer,2023-05-11,Positive
+Jeffery Haley,70,Female,20603,Cancer,2020-03-20,Positive
+James Kelly,25,Male,87012,Asthma,2020-04-08,Positive
+James Kelly,25,Male,87010,Cancer,2022-11-17,Negative
+James Kelly,25,Male,87008,COVID-19,2021-09-23,Negative
+James Kelly,25,Male,87007,Hypertension,2021-10-29,Negative
+James Kelly,25,Male,87009,Heart Disease,2023-11-16,Positive
+James Kelly,25,Male,87011,Cancer,2024-03-17,Negative
+Lori Chandler,64,Male,76934,Heart Disease,2024-06-01,Negative
+Lori Chandler,64,Male,76930,Cancer,2021-09-17,Negative
+Elizabeth Bush,40,Male,63191,COVID-19,2020-11-19,Negative
+Elizabeth Bush,40,Male,63188,Cancer,2023-03-06,Negative
+Susan Thomas,49,Male,46283,Hypertension,2022-11-11,Negative
+Susan Thomas,49,Male,46286,Cancer,2020-07-10,Negative
+Tammy Vasquez,63,Male,11043,COVID-19,2021-04-26,Positive
+Tammy Vasquez,63,Male,11043,Asthma,2021-11-07,Negative
+Tammy Vasquez,63,Male,11040,Cancer,2024-06-30,Negative
+Tammy Vasquez,63,Male,11040,Heart Disease,2020-12-04,Negative
+Tammy Vasquez,63,Male,11043,Hypertension,2024-08-06,Positive
+Tammy Vasquez,63,Male,11038,Cancer,2023-12-26,Negative
+Nicole Castro,20,Male,39439,Asthma,2020-07-17,Positive
+Nicole Castro,20,Male,39443,Cancer,2021-05-10,Positive
+Johnny Jones,23,Female,34658,Cancer,2019-11-30,Negative
+Johnny Jones,23,Female,34656,Heart Disease,2021-04-29,Negative
+Johnny Jones,23,Female,34658,Cancer,2023-11-22,Positive
+Micheal Chambers,28,Female,86550,Asthma,2020-10-29,Negative
+Micheal Chambers,28,Female,86549,Cancer,2020-11-30,Negative
+Micheal Chambers,28,Female,86547,Cancer,2020-05-29,Positive
+Dustin Mendoza,29,Male,23929,COVID-19,2023-10-10,Positive
+Dustin Mendoza,29,Male,23926,Asthma,2023-04-13,Negative
+Dustin Mendoza,29,Male,23925,Cancer,2024-03-03,Negative
+Dustin Mendoza,29,Male,23926,Cancer,2023-03-21,Positive
+Kenneth Smith,47,Female,94735,Asthma,2020-12-29,Positive
+Kenneth Smith,47,Female,94738,Heart Disease,2021-08-04,Negative
+Kenneth Smith,47,Female,94737,Diabetes,2024-10-03,Positive
+Kenneth Smith,47,Female,94734,COVID-19,2020-05-16,Positive
+Kenneth Smith,47,Female,94738,Hypertension,2021-07-25,Negative
+Kenneth Smith,47,Female,94737,Cancer,2022-01-14,Negative
+James Snyder,78,Male,75790,Cancer,2024-08-23,Negative
+James Snyder,78,Male,75788,Cancer,2024-09-17,Negative
+Michaela Hutchinson,60,Male,45047,Heart Disease,2022-09-21,Positive
+Michaela Hutchinson,60,Male,45044,Asthma,2021-04-17,Positive
+Michaela Hutchinson,60,Male,45042,COVID-19,2023-10-11,Negative
+Michaela Hutchinson,60,Male,45041,Diabetes,2020-11-29,Positive
+Michaela Hutchinson,60,Male,45045,Cancer,2022-08-06,Positive
+Michelle Mills,59,Male,86137,Cancer,2021-07-17,Negative
+Michelle Mills,59,Male,86134,Diabetes,2023-11-01,Positive
+Michelle Mills,59,Male,86137,Heart Disease,2022-04-28,Positive
+Michelle Mills,59,Male,86137,Cancer,2021-02-11,Negative
+Amy Mitchell,24,Female,33615,Diabetes,2020-10-15,Negative
+Amy Mitchell,24,Female,33613,Cancer,2020-01-01,Negative
+Emily Lawson,71,Male,62817,COVID-19,2022-08-13,Positive
+Emily Lawson,71,Male,62815,Cancer,2023-10-21,Positive
+Emily Lawson,71,Male,62819,Asthma,2022-01-06,Positive
+Emily Lawson,71,Male,62814,Heart Disease,2023-10-31,Positive
+Emily Lawson,71,Male,62814,Cancer,2020-10-23,Negative
+William Mcguire,79,Male,80949,Cancer,2024-01-08,Negative
+William Mcguire,79,Male,80946,Diabetes,2024-02-10,Positive
+William Mcguire,79,Male,80943,Heart Disease,2022-03-24,Negative
+William Mcguire,79,Male,80949,COVID-19,2022-10-23,Negative
+William Mcguire,79,Male,80948,Hypertension,2021-02-14,Positive
+William Mcguire,79,Male,80945,Cancer,2021-05-06,Negative
+Patrick Lucas,57,Female,63285,Asthma,2021-11-03,Negative
+Patrick Lucas,57,Female,63283,COVID-19,2024-08-17,Negative
+Patrick Lucas,57,Female,63286,Cancer,2022-08-16,Positive
+Scott Velazquez,51,Female,34302,Asthma,2023-05-24,Negative
+Scott Velazquez,51,Female,34302,Diabetes,2021-02-04,Negative
+Scott Velazquez,51,Female,34304,Cancer,2021-02-02,Positive
+Scott Velazquez,51,Female,34303,Cancer,2021-02-08,Positive
+Sheryl Johnson,34,Male,49300,Diabetes,2021-05-31,Negative
+Sheryl Johnson,34,Male,49299,Cancer,2024-06-21,Positive
+Sheryl Johnson,34,Male,49300,Heart Disease,2020-11-22,Negative
+Sheryl Johnson,34,Male,49302,COVID-19,2021-03-11,Positive
+Sheryl Johnson,34,Male,49301,Cancer,2024-04-01,Negative
+Gerald Wolf,37,Female,83895,Asthma,2024-03-19,Positive
+Gerald Wolf,37,Female,83890,Cancer,2023-01-08,Positive
+Gerald Wolf,37,Female,83894,Cancer,2020-05-06,Positive
+Jessica Gibbs,31,Female,36280,Hypertension,2020-08-16,Positive
+Jessica Gibbs,31,Female,36279,Diabetes,2022-08-27,Positive
+Jessica Gibbs,31,Female,36278,COVID-19,2023-12-18,Negative
+Jessica Gibbs,31,Female,36277,Heart Disease,2021-02-23,Negative
+Jessica Gibbs,31,Female,36279,Asthma,2022-03-26,Negative
+Jessica Gibbs,31,Female,36278,Cancer,2024-04-05,Positive
+Madison Estes,77,Female,93176,Diabetes,2021-05-18,Positive
+Madison Estes,77,Female,93179,COVID-19,2022-09-02,Positive
+Madison Estes,77,Female,93178,Asthma,2023-02-01,Positive
+Madison Estes,77,Female,93182,Cancer,2020-11-17,Negative
+Madison Estes,77,Female,93178,Heart Disease,2024-03-04,Positive
+Madison Estes,77,Female,93177,Cancer,2022-01-08,Positive
+Margaret Love,31,Female,74208,Asthma,2023-01-08,Negative
+Margaret Love,31,Female,74204,Cancer,2024-06-28,Positive
+Margaret Love,31,Female,74204,Diabetes,2024-01-27,Positive
+Margaret Love,31,Female,74204,Heart Disease,2023-02-09,Positive
+Margaret Love,31,Female,74207,Hypertension,2021-04-14,Negative
+Margaret Love,31,Female,74204,Cancer,2022-12-09,Positive
+Susan Ward,26,Male,97765,Cancer,2022-07-11,Negative
+Susan Ward,26,Male,97764,Hypertension,2021-11-24,Negative
+Susan Ward,26,Male,97763,Cancer,2020-11-26,Positive
+Pamela Oneill,73,Female,58969,Heart Disease,2022-10-07,Negative
+Pamela Oneill,73,Female,58969,Asthma,2022-07-28,Negative
+Pamela Oneill,73,Female,58965,Diabetes,2020-10-14,Positive
+Pamela Oneill,73,Female,58969,Hypertension,2021-11-05,Positive
+Pamela Oneill,73,Female,58965,COVID-19,2023-09-01,Positive
+Pamela Oneill,73,Female,58964,Cancer,2023-08-22,Negative
+Lauren Long,32,Male,38424,Diabetes,2021-11-07,Positive
+Lauren Long,32,Male,38427,Cancer,2021-10-05,Positive
+Lauren Long,32,Male,38425,Hypertension,2023-02-03,Positive
+Lauren Long,32,Male,38426,Heart Disease,2022-01-23,Negative
+Lauren Long,32,Male,38426,Cancer,2022-05-31,Negative
+Lauren Collins,30,Female,50834,COVID-19,2024-05-30,Positive
+Lauren Collins,30,Female,50834,Diabetes,2022-05-31,Negative
+Lauren Collins,30,Female,50837,Heart Disease,2021-07-14,Positive
+Lauren Collins,30,Female,50840,Cancer,2022-02-04,Positive
+Michael Salas,45,Male,98019,Cancer,2022-07-13,Negative
+Michael Salas,45,Male,98024,Cancer,2021-04-13,Negative
+Megan Walker,28,Male,46576,Diabetes,2024-04-18,Positive
+Megan Walker,28,Male,46579,Hypertension,2024-09-06,Positive
+Megan Walker,28,Male,46578,COVID-19,2021-03-07,Negative
+Megan Walker,28,Male,46580,Cancer,2021-10-27,Negative
+Megan Walker,28,Male,46579,Asthma,2024-01-28,Positive
+Megan Walker,28,Male,46579,Cancer,2024-01-19,Negative
+Dana Martinez,37,Male,81373,Cancer,2022-05-31,Positive
+Dana Martinez,37,Male,81375,Cancer,2022-08-19,Negative
+Timothy Duran,60,Female,25055,Hypertension,2024-06-28,Positive
+Timothy Duran,60,Female,25060,Cancer,2020-05-06,Positive
+Timothy Duran,60,Female,25055,Cancer,2020-01-24,Positive
+Cameron Rowe,47,Male,51583,Diabetes,2023-12-25,Negative
+Cameron Rowe,47,Male,51580,Asthma,2021-06-07,Positive
+Cameron Rowe,47,Male,51577,Cancer,2021-12-10,Positive
+Tina Harris,56,Female,78508,Cancer,2022-01-16,Negative
+Tina Harris,56,Female,78507,COVID-19,2022-09-16,Negative
+Tina Harris,56,Female,78507,Cancer,2020-03-11,Positive
+Katherine Perez,56,Female,48252,Diabetes,2021-03-21,Negative
+Katherine Perez,56,Female,48256,Cancer,2021-06-21,Negative
+Katherine Perez,56,Female,48254,Hypertension,2023-12-13,Positive
+Katherine Perez,56,Female,48256,Heart Disease,2023-03-04,Positive
+Katherine Perez,56,Female,48253,Cancer,2024-05-11,Positive
+Nicole Dunlap,28,Female,22827,Hypertension,2023-10-21,Negative
+Nicole Dunlap,28,Female,22824,COVID-19,2023-12-28,Negative
+Nicole Dunlap,28,Female,22824,Cancer,2022-07-01,Negative
+Nicole Dunlap,28,Female,22826,Heart Disease,2021-09-20,Negative
+Nicole Dunlap,28,Female,22825,Asthma,2019-12-07,Negative
+Nicole Dunlap,28,Female,22826,Cancer,2024-05-31,Positive
+Robert Johnson,65,Male,34870,Diabetes,2020-11-19,Negative
+Robert Johnson,65,Male,34869,Heart Disease,2023-10-25,Negative
+Robert Johnson,65,Male,34871,Asthma,2023-11-24,Positive
+Robert Johnson,65,Male,34869,Cancer,2024-03-18,Positive
+Patricia Hall,58,Female,53185,Cancer,2023-08-04,Positive
+Patricia Hall,58,Female,53187,COVID-19,2020-12-16,Negative
+Patricia Hall,58,Female,53186,Diabetes,2021-03-06,Positive
+Patricia Hall,58,Female,53187,Asthma,2023-07-15,Negative
+Patricia Hall,58,Female,53184,Hypertension,2024-08-04,Positive
+Patricia Hall,58,Female,53183,Cancer,2021-11-24,Negative
+Phillip Jackson DVM,53,Male,22197,Hypertension,2020-02-04,Positive
+Phillip Jackson DVM,53,Male,22195,COVID-19,2022-04-18,Positive
+Phillip Jackson DVM,53,Male,22193,Cancer,2024-03-24,Positive
+Phillip Jackson DVM,53,Male,22194,Diabetes,2020-08-29,Negative
+Phillip Jackson DVM,53,Male,22191,Asthma,2020-02-29,Positive
+Phillip Jackson DVM,53,Male,22194,Cancer,2024-05-04,Negative
+Tyler Savage,28,Female,57896,Asthma,2024-04-13,Negative
+Tyler Savage,28,Female,57897,Cancer,2021-03-19,Positive
+Emily Moore,35,Female,81897,Heart Disease,2023-07-30,Negative
+Emily Moore,35,Female,81898,Asthma,2019-11-27,Positive
+Emily Moore,35,Female,81894,Cancer,2023-01-29,Negative
+Yvette Gutierrez,42,Female,50381,Hypertension,2021-02-15,Negative
+Yvette Gutierrez,42,Female,50385,Diabetes,2022-01-27,Negative
+Yvette Gutierrez,42,Female,50381,Cancer,2024-05-04,Positive
+Clarence Moss,59,Male,32223,Cancer,2023-05-03,Negative
+Clarence Moss,59,Male,32221,Hypertension,2021-09-16,Negative
+Clarence Moss,59,Male,32222,Cancer,2020-02-21,Positive
+Kathy Arnold,41,Female,81231,Asthma,2022-05-11,Positive
+Kathy Arnold,41,Female,81229,Cancer,2021-12-06,Positive
+Kathy Arnold,41,Female,81227,Cancer,2020-04-10,Positive
