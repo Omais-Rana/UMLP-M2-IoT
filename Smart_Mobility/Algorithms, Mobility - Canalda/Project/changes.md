@@ -108,6 +108,8 @@ This file records the mobility-platform improvements completed in this conversat
 - Corrected shared-hub eligibility so a transit itinerary may use two walking legs of up to 500 m each (origin access plus hub access), instead of incorrectly rejecting it when their combined distance exceeded 500 m. Individual walking legs remain capped at 500 m.
 - Moved the planning loader out of the left controls sidebar into a centered full-page modal overlay with a blurred background, wider participant progress layout, and automatic removal when results are displayed.
 - Aligned shared meeting-point group-leg walking checks with the current 500 m policy, replacing the remaining 300 m exceptions for walking from a hub to transit and from transit to the destination.
+- Moved each participant's departure-location search into a clearly labeled full-width row instead of placing it beside the personal-car checkbox.
+- Updated carpool assignment logic to honor explicit driver `pickup_passengers` selections and retain legacy `share_ride` compatibility.
 - Increased walking-distance penalty in route scoring so longer walking legs are not selected for negligible arrival-time gains.
 - Limited origin, destination, direct, transfer, and total itinerary walking to 300 metres.
 - Corrected `arrive_by` ranking to sample departure times and select the latest feasible itinerary instead of returning routes from the beginning of the search window.
@@ -122,6 +124,16 @@ This file records the mobility-platform improvements completed in this conversat
 - Fixed the loader helpers being scoped inside the map-marker factory, which prevented the calculate handler from starting progress polling.
 - Reduced timetable memory pressure by streaming active stop times through a feed-qualified `stop_times`/`trips` join, avoiding materialization of all trip IDs and a large `whereIn` parameter list.
 - Changed timetable connection generation to stream SQL-built adjacent connections in departure order, eliminating the full PHP connection array, its sort-time copy, and oversized cache writes.
+- Streamlined meeting point selection: instead of retaining multiple candidate hubs, `MeetingPointFinder` now evaluates hub candidates and retains only the single best hub (earliest group arrival at destination, then least walking).
+- Restricted options to exactly two outcomes: exactly one meeting point option (hub convergence or carpool) followed by one direct independent journey option, simplifying choices and avoiding redundant results.
+- Excluded car owners from transit hub convergence: car owners are skipped during candidate hub reachability in `ItineraryPlanner` and drive directly to destination in hub strategies, ensuring personal car owners receive car transport only.
+- Resolved actual transit line names for hub-to-destination group legs: replaced the generic "Ligne de transit collective" label in `MeetingPointFinder` by walking the CSA predecessor tree backwards to identify the real GTFS route, mode (train/bus), and line color.
+- Interactive participant location selector: replaced the static coordinates label in participant cards with a searchable bus stop input with dropdown selection matching `bootstrapStops`, while syncing coordinates, markers, and map view.
+- Driver convergence to meeting point (Problem 1): in the meeting point option, drivers (and any passengers they pick up) now drive to the meeting point hub first, meeting the other participants before taking the group leg together to the final destination.
+- Carpool passengers ride with driver without public transit (Problem 2): passengers with shared rides are picked up directly at their departure location by the driver and travel entirely via car (`car_passenger` mode) without public transit legs to the meeting point or destination.
+- Driver-specific passenger selection for multiple drivers (Problem 3): replaced the ambiguous generic "Share ride" checkbox on passenger cards with dynamic driver-specific passenger selection options ("Share ride with Passenger A", "Share ride with Passenger B") on each driver's card, allowing clear many-to-many driver-passenger assignment.
+- Removed Optymo velo and car rental services (Problem 4): removed all GBFS shared car (`gbfs_car`, `car_share`) and bike rental (`bike`, `velo`) logic, commands (`ImportGbfs`), models, views, and test suites, focusing the platform strictly on urban buses, regional trains, and personal cars/carpools.
+- Maintained full test suite and code style: all PHPUnit tests pass, Laravel Pint cleanly applied, and production frontend assets rebuilt with Vite.
 
 ## Planned from now
 

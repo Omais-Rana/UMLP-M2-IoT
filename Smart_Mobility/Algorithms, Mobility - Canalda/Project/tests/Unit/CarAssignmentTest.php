@@ -24,6 +24,45 @@ class CarAssignmentTest extends TestCase
         $this->carAssignment = new CarAssignment($travelTime, $legBuilder);
     }
 
+    public function test_explicit_driver_pickup_is_used_when_share_ride_is_false(): void
+    {
+        $destination = ['name' => 'UTBM Belfort', 'lat' => 47.6425, 'lon' => 6.8436];
+        $startTimeSec = (8 * 3600) + (30 * 60);
+
+        $participants = [
+            [
+                'name' => 'Alice',
+                'lat' => 47.5100,
+                'lon' => 6.7980,
+                'has_car' => true,
+                'pickup_passengers' => ['Robin'],
+            ],
+            [
+                'name' => 'Robin',
+                'lat' => 47.5878,
+                'lon' => 6.8665,
+                'has_car' => false,
+                'share_ride' => false,
+            ],
+        ];
+
+        $result = $this->carAssignment->solve(
+            $participants,
+            $this->reachMap($participants),
+            $destination,
+            $startTimeSec
+        );
+
+        $this->assertNotNull($result);
+        $this->assertSame(['Robin'], $result['car_decisions'][0]['passengers']);
+
+        $robinItinerary = collect($result['itineraries'])
+            ->firstWhere('participant', 'Robin');
+
+        $this->assertNotNull($robinItinerary);
+        $this->assertSame('car_passenger', end($robinItinerary['legs'])['mode']);
+    }
+
     public function test_driver_picks_up_along_the_way_passenger_with_car_only_final_leg(): void
     {
         // Driver Alice in Montbéliard (47.5100, 6.7980) going to UTBM Belfort (47.6425, 6.8436)

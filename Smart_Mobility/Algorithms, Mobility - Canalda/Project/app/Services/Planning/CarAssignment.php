@@ -33,10 +33,30 @@ class CarAssignment
         int $startTimeSec
     ): ?array {
         $drivers = array_values(array_filter($participants, fn (array $participant): bool => (bool) ($participant['has_car'] ?? false)));
-        $passengers = array_values(array_filter(
-            $participants,
-            fn (array $participant): bool => ! ($participant['has_car'] ?? false) && ($participant['share_ride'] ?? false)
-        ));
+        $passengersByName = [];
+        foreach ($participants as $participant) {
+            if (! ($participant['has_car'] ?? false)) {
+                $passengersByName[$participant['name']] = $participant;
+            }
+        }
+
+        $passengers = [];
+        foreach ($drivers as $driver) {
+            foreach ($driver['pickup_passengers'] ?? [] as $passengerName) {
+                if (isset($passengersByName[$passengerName]) && ! in_array($passengerName, array_column($passengers, 'name'), true)) {
+                    $passengers[] = $passengersByName[$passengerName];
+                }
+            }
+        }
+
+        // Backward compatibility for requests that only set share_ride.
+        foreach ($participants as $participant) {
+            if (! ($participant['has_car'] ?? false)
+                && ($participant['share_ride'] ?? false)
+                && ! in_array($participant['name'], array_column($passengers, 'name'), true)) {
+                $passengers[] = $participant;
+            }
+        }
 
         if ($drivers === [] || $passengers === []) {
             return null;

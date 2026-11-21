@@ -1,0 +1,17 @@
+{
+  "1": "TestCase",
+  "5": "MapController.php",
+  "14": "CalendarDate",
+  "17": "Illuminate\\Console\\Command",
+  "18": "Illuminate\\Support\\Facades\\Artisan",
+  "51": "Stop",
+  "66": "copilot-instructions.md",
+  "67": "PlanApiTest",
+  "68": "ProcessPlanningRun.php",
+  "69": "ConnectionScan",
+  "70": "Illuminate\\Http\\Request",
+  "71": "PlanRequest",
+  "72": "TransitiveClosure",
+  "73": "DemoScenarioTest",
+  "74": "GtfsNormalizationTest"
+}

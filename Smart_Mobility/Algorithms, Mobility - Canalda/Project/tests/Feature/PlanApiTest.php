@@ -222,4 +222,47 @@ class PlanApiTest extends TestCase
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['participants.0.share_ride']);
     }
+
+    public function test_driver_goes_to_meeting_point_first_and_passenger_shares_ride(): void
+    {
+        $payload = [
+            'date' => '2026-10-27',
+            'time' => '08:30',
+            'time_type' => 'depart_at',
+            'destination' => [
+                'name' => 'UTBM Belfort',
+                'lat' => 47.6425,
+                'lon' => 6.8436,
+            ],
+            'participants' => [
+                [
+                    'name' => 'Alice Driver',
+                    'lat' => 47.6350,
+                    'lon' => 6.8600,
+                    'has_car' => true,
+                    'pickup_passengers' => ['Bob Passenger'],
+                ],
+                [
+                    'name' => 'Bob Passenger',
+                    'lat' => 47.6380,
+                    'lon' => 6.8550,
+                    'has_car' => false,
+                ],
+            ],
+        ];
+
+        $response = $this->postJson('/api/plan', $payload);
+        $response->assertStatus(200);
+
+        $options = $response->json('options');
+        $this->assertNotEmpty($options);
+
+        $directOption = collect($options)->firstWhere('strategy_type', 'direct') ?? end($options);
+        $bobItin = collect($directOption['itineraries'])->firstWhere('participant', 'Bob Passenger');
+        $this->assertNotNull($bobItin);
+        $bobModes = array_column($bobItin['legs'], 'mode');
+        $this->assertContains('car_passenger', $bobModes);
+        $this->assertNotContains('bus', $bobModes);
+        $this->assertNotContains('train', $bobModes);
+    }
 }

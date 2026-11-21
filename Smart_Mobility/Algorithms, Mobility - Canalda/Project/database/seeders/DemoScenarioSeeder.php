@@ -13,7 +13,6 @@ class DemoScenarioSeeder extends Seeder
     public function run(): void
     {
         Artisan::call('mobility:import-gtfs');
-        Artisan::call('mobility:import-gbfs');
         Artisan::call('mobility:build-transfers');
         Artisan::call('mobility:build-matrix');
     }

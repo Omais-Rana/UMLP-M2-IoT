@@ -46,6 +46,8 @@ class PlanRequest extends FormRequest
             'participants.*.lon' => ['required', 'numeric', "between:{$minLon},{$maxLon}"],
             'participants.*.has_car' => ['nullable', 'boolean'],
             'participants.*.share_ride' => ['nullable', 'boolean'],
+            'participants.*.pickup_passengers' => ['nullable', 'array'],
+            'participants.*.pickup_passengers.*' => ['string', 'max:255'],
         ];
     }
 

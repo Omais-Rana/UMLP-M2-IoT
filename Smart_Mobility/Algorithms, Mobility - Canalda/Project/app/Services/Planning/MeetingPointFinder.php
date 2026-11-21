@@ -3,8 +3,6 @@
 namespace App\Services\Planning;
 
 use App\Models\CandidatePoint;
-use App\Models\CarPark;
-use App\Models\CarShareStation;
 use App\Models\Route;
 use App\Models\Stop;
 use App\Services\Routing\ConnectionScan;
@@ -58,9 +56,9 @@ class MeetingPointFinder
             : $requestedTimeSec;
         $latestArrivalSec = $timeType === 'arrive_by' ? $requestedTimeSec : null;
 
-        // 1. Compute reachability for all participants. Arrival-by searches
-        // sample departure times so the result is the latest feasible option,
-        // rather than the earliest option from the start of the search window.
+        // 1. Compute reachability for all participants. Car owners compute only their
+        // direct-to-destination reach (no candidate hubs needed). Arrival-by searches
+        // sample departure times so the result is the latest feasible option.
         $reachMap = [];
         foreach ($participants as $p) {
             $reachMap[$p['name']] = $this->findBestReach(
@@ -76,9 +74,25 @@ class MeetingPointFinder
             }
         }
 
-        $allStrategies = [];
+        $carpool = $this->resolveCarpoolAssignments($participants);
+        $participantsByName = [];
+        foreach ($participants as $p) {
+            $participantsByName[$p['name']] = $p;
+        }
 
-        // 2. Hub-based Meeting Point Strategies
+        // Independent non-car participants (those not picked up by any driver)
+        $independentNonCarParticipants = array_values(array_filter(
+            $participants,
+            fn (array $p): bool => ! ($p['has_car'] ?? false) && ! isset($carpool['passenger_driver'][$p['name']])
+        ));
+
+        $allStrategies = [];
+        $hubStrategies = [];
+
+        // 2. Hub-based Meeting Point Strategies — all participants converge at the meeting point.
+        // Drivers (and any passengers they pick up) drive to the meeting point first.
+        // Independent non-car participants reach the meeting point via transit/walk.
+        // From the meeting point, the entire group travels together to the destination.
         $candidates = $this->dataset->candidates();
         $stops = $this->dataset->stops();
         $routesKeyed = $this->dataset->routes();
@@ -87,11 +101,18 @@ class MeetingPointFinder
 
         foreach ($candidates as $cand) {
             $candId = $cand->id;
+            $candTarget = [
+                'name' => $cand->name,
+                'lat' => (float) $cand->lat,
+                'lon' => (float) $cand->lon,
+            ];
             $allCanReach = true;
             $arrivalTimes = [];
             $participantLegsToHub = [];
+            $participantWaitMin = [];
 
-            foreach ($participants as $p) {
+            // 2a. Independent non-car participants reach hub via transit/walk
+            foreach ($independentNonCarParticipants as $p) {
                 $pName = $p['name'];
                 $pReach = $reachMap[$pName]['candidates_reach'][$candId] ?? null;
 
@@ -102,16 +123,40 @@ class MeetingPointFinder
 
                 $arrivalTimes[$pName] = $pReach['arrival_time_sec'];
                 $participantLegsToHub[$pName] = $pReach['legs'];
+                $participantWaitMin[$pName] = 0;
             }
 
             if (! $allCanReach) {
                 continue;
             }
 
-            // Synchronized group departure time from hub
+            // 2b. Drivers and their picked up passengers drive to the meeting point
+            foreach ($participants as $p) {
+                if (! ($p['has_car'] ?? false)) {
+                    continue;
+                }
+                $driverName = $p['name'];
+                $pickedPassNames = $carpool['driver_passengers'][$driverName] ?? [];
+                $pickedPasses = array_map(fn (string $name): array => $participantsByName[$name], $pickedPassNames);
+
+                $carpoolHub = $this->computeDriverCarpoolTo($p, $pickedPasses, $candTarget, $startTimeSec);
+
+                $participantLegsToHub[$driverName] = $carpoolHub['driver_legs'];
+                $arrivalTimes[$driverName] = $carpoolHub['driver_arrival'];
+                $participantWaitMin[$driverName] = 0;
+
+                foreach ($pickedPasses as $pass) {
+                    $passName = $pass['name'];
+                    $participantLegsToHub[$passName] = $carpoolHub['passenger_legs'][$passName];
+                    $arrivalTimes[$passName] = $carpoolHub['passenger_arrivals'][$passName];
+                    $participantWaitMin[$passName] = $carpoolHub['passenger_wait_min'][$passName];
+                }
+            }
+
+            // Synchronized group departure time from hub (latest participant arrival).
             $tLeaveHub = max($arrivalTimes);
 
-            // Compute group leg from hub to destination D
+            // Compute group leg from hub to destination.
             $groupLeg = $this->computeGroupLegFromHub(
                 $cand,
                 $destination,
@@ -129,6 +174,7 @@ class MeetingPointFinder
             if ($latestArrivalSec !== null && $finalArrivalSec > $latestArrivalSec) {
                 continue;
             }
+
             $itineraries = [];
             $totalWaitMin = 0;
             $totalWalkingM = 0;
@@ -136,9 +182,10 @@ class MeetingPointFinder
 
             foreach ($participants as $p) {
                 $pName = $p['name'];
-                $waitSec = max(0, $tLeaveHub - $arrivalTimes[$pName]);
-                $waitMin = (int) round($waitSec / 60);
-                $totalWaitMin += $waitMin;
+                $hubWaitSec = max(0, $tLeaveHub - $arrivalTimes[$pName]);
+                $hubWaitMin = (int) round($hubWaitSec / 60);
+                $pWaitMin = ($participantWaitMin[$pName] ?? 0) + $hubWaitMin;
+                $totalWaitMin += $pWaitMin;
 
                 $legs = $participantLegsToHub[$pName];
                 $legs[] = $groupLeg['leg'];
@@ -156,14 +203,14 @@ class MeetingPointFinder
                     'participant' => $pName,
                     'total_duration_min' => max(1, (int) round(($finalArrivalSec - $startTimeSec) / 60)),
                     'arrival_at_destination' => $this->legBuilder->formatSeconds($finalArrivalSec),
-                    'wait_min' => $waitMin,
+                    'wait_min' => $pWaitMin,
                     'transfers' => 1,
                     'walking_m' => $pWalkingM,
                     'legs' => $legs,
                 ];
             }
 
-            $allStrategies[] = [
+            $hubStrategies[] = [
                 'title' => "Rendez-vous à {$cand->name}",
                 'meeting_points' => [
                     [
@@ -184,54 +231,29 @@ class MeetingPointFinder
             ];
         }
 
-        // 3. Route-aware Car Pickup Strategy
-        $carpoolSolution = $this->carAssignment->solve(
-            $participants,
-            $reachMap,
-            $destination,
-            $startTimeSec
-        );
-
-        if ($carpoolSolution !== null) {
-            $totalWaitMin = 0;
-            $totalWalkingM = 0;
-            $sumArrivals = 0;
-
-            foreach ($carpoolSolution['itineraries'] as $itin) {
-                $totalWaitMin += $itin['wait_min'];
-                $totalWalkingM += $itin['walking_m'];
-                // Duration in seconds
-                $sumArrivals += $carpoolSolution['arrival_at_destination_sec'];
-            }
-
-            $allStrategies[] = [
-                'title' => 'Covoiturage avec ramassage sur itinéraire',
-                'meeting_points' => $carpoolSolution['meeting_points'],
-                'arrival_at_destination' => $carpoolSolution['arrival_at_destination'],
-                'arrival_sec' => $carpoolSolution['arrival_at_destination_sec'],
-                'sum_arrivals_sec' => $sumArrivals,
-                'total_wait_min' => $totalWaitMin,
-                'total_walking_m' => $totalWalkingM,
-                'itineraries' => $carpoolSolution['itineraries'],
-                'car_decisions' => $carpoolSolution['car_decisions'],
-                'strategy_type' => 'car_pickup',
-            ];
+        // Keep only the single best hub strategy (earliest group arrival, then least walking).
+        if ($hubStrategies !== []) {
+            usort($hubStrategies, fn ($a, $b) => $a['arrival_sec'] !== $b['arrival_sec']
+                ? $a['arrival_sec'] <=> $b['arrival_sec']
+                : $a['total_walking_m'] <=> $b['total_walking_m']);
+            $allStrategies[] = $hubStrategies[0];
         }
 
-        // 4. One-way shared car is available only for cross-city journeys.
-        $sharedCarStrategy = $this->sharedCarStrategy($participants, $destination, $startTimeSec);
-        if ($sharedCarStrategy !== null) {
-            $allStrategies[] = $sharedCarStrategy;
-        }
-
-        // 5. Fallback direct strategy (each participant goes directly to destination)
+        // 3. Fallback direct strategy (each participant or carpool goes directly to destination)
         $directGroupArrival = 0;
         $directItins = [];
         $directWaitMin = 0;
         $directWalkingM = 0;
         $directSumArrivals = 0;
 
-        foreach ($participants as $p) {
+        $destTarget = [
+            'name' => $destination['name'],
+            'lat' => $destLat,
+            'lon' => $destLon,
+        ];
+
+        // 3a. Independent passengers (transit/walk directly to destination)
+        foreach ($independentNonCarParticipants as $p) {
             $pName = $p['name'];
             $itin = $reachMap[$pName]['best_itinerary_to_destination'];
             $pArr = $reachMap[$pName]['earliest_at_destination'];
@@ -240,6 +262,49 @@ class MeetingPointFinder
             $directWaitMin += $itin['wait_min'];
             $directWalkingM += $itin['walking_m'];
             $directItins[] = $itin;
+        }
+
+        // 3b. Drivers and their picked up passengers (drive directly to destination)
+        foreach ($participants as $p) {
+            if (! ($p['has_car'] ?? false)) {
+                continue;
+            }
+            $driverName = $p['name'];
+            $pickedPassNames = $carpool['driver_passengers'][$driverName] ?? [];
+            $pickedPasses = array_map(fn (string $name): array => $participantsByName[$name], $pickedPassNames);
+
+            $carpoolDirect = $this->computeDriverCarpoolTo($p, $pickedPasses, $destTarget, $startTimeSec);
+
+            $driverArrival = $carpoolDirect['driver_arrival'];
+            $directGroupArrival = max($directGroupArrival, $driverArrival);
+            $directSumArrivals += $driverArrival;
+
+            $directItins[] = [
+                'participant' => $driverName,
+                'total_duration_min' => max(1, (int) round(($driverArrival - $startTimeSec) / 60)),
+                'arrival_at_destination' => $this->legBuilder->formatSeconds($driverArrival),
+                'wait_min' => 0,
+                'transfers' => 0,
+                'walking_m' => 0,
+                'legs' => $carpoolDirect['driver_legs'],
+            ];
+
+            foreach ($pickedPasses as $pass) {
+                $passName = $pass['name'];
+                $passWaitMin = $carpoolDirect['passenger_wait_min'][$passName] ?? 0;
+                $directWaitMin += $passWaitMin;
+                $directSumArrivals += $driverArrival;
+
+                $directItins[] = [
+                    'participant' => $passName,
+                    'total_duration_min' => max(1, (int) round(($driverArrival - $startTimeSec) / 60)),
+                    'arrival_at_destination' => $this->legBuilder->formatSeconds($driverArrival),
+                    'wait_min' => $passWaitMin,
+                    'transfers' => 0,
+                    'walking_m' => 0,
+                    'legs' => $carpoolDirect['passenger_legs'][$passName],
+                ];
+            }
         }
 
         $allStrategies[] = [
@@ -255,7 +320,7 @@ class MeetingPointFinder
             'strategy_type' => 'direct',
         ];
 
-        // 5. Sort strategies by objective and tie-breakers
+        // 4. Filter strategies that violate the arrive-by deadline.
         if ($latestArrivalSec !== null) {
             $allStrategies = array_values(array_filter(
                 $allStrategies,
@@ -263,116 +328,187 @@ class MeetingPointFinder
             ));
         }
 
-        usort($allStrategies, function ($a, $b) use ($objective) {
-            $aHasMeetingPoint = $a['meeting_points'] !== [];
-            $bHasMeetingPoint = $b['meeting_points'] !== [];
-            if ($aHasMeetingPoint !== $bHasMeetingPoint) {
-                return $aHasMeetingPoint ? -1 : 1;
-            }
-
-            if ($objective === 'sum_arrivals') {
-                if ($a['sum_arrivals_sec'] !== $b['sum_arrivals_sec']) {
-                    return $a['sum_arrivals_sec'] <=> $b['sum_arrivals_sec'];
-                }
-            } else {
-                // Primary: earliest latest arrival at D
-                if ($a['arrival_sec'] !== $b['arrival_sec']) {
-                    return $a['arrival_sec'] <=> $b['arrival_sec'];
-                }
-            }
-
-            // Secondary: total waiting time
-            if ($a['total_wait_min'] !== $b['total_wait_min']) {
-                return $a['total_wait_min'] <=> $b['total_wait_min'];
-            }
-
-            // Tertiary: total walking distance
-            return $a['total_walking_m'] <=> $b['total_walking_m'];
-        });
-
-        // 6. Return Top N options (distinct meeting points where possible)
-        $topN = (int) config('mobility.top_n_results', 3);
-        $selected = [];
-        $seenTitles = [];
+        // 5. Return exactly 2 options: the best hub/meeting-point strategy (first)
+        // and the direct independent-journey strategy (second).
+        $hubOption = null;
+        $directOption = null;
 
         foreach ($allStrategies as $strat) {
-            $key = $strat['title'].'_'.$strat['arrival_at_destination'];
-            if (! isset($seenTitles[$key])) {
-                $seenTitles[$key] = true;
-                $selected[] = $strat;
-                if (count($selected) >= $topN) {
-                    break;
-                }
+            if ($directOption === null && $strat['strategy_type'] === 'direct') {
+                $directOption = $strat;
+            } elseif ($hubOption === null && ($strat['strategy_type'] === 'hub' || ! empty($strat['meeting_points']))) {
+                $hubOption = $strat;
             }
+            if ($hubOption !== null && $directOption !== null) {
+                break;
+            }
+        }
+
+        $selected = [];
+        if ($hubOption !== null) {
+            $selected[] = $hubOption;
+        }
+        if ($directOption !== null) {
+            $selected[] = $directOption;
         }
 
         return $selected;
     }
 
     /**
-     * Build a one-way GBFS car option for a participant crossing the prototype city boundary.
+     * Map drivers to their assigned passengers.
      *
-     * @param  list<array{name: string, lat: float, lon: float, has_car: bool, share_ride?: bool}>  $participants
-     * @param  array{name: string, lat: float, lon: float}  $destination
-     * @return array<string, mixed>|null
+     * @param  list<array<string, mixed>>  $participants
+     * @return array{
+     *     driver_passengers: array<string, list<string>>,
+     *     passenger_driver: array<string, string>
+     * }
      */
-    protected function sharedCarStrategy(array $participants, array $destination, int $startTimeSec): ?array
+    protected function resolveCarpoolAssignments(array $participants): array
     {
-        $destinationZone = $this->cityZone((float) $destination['lat'], (float) $destination['lon']);
-        if ($destinationZone === null) {
-            return null;
+        $driverPassengers = [];
+        $passengerDriver = [];
+        $participantsByName = [];
+
+        foreach ($participants as $p) {
+            $participantsByName[$p['name']] = $p;
         }
 
-        $station = CarShareStation::query()->where('num_cars_available', '>', 0)->orderByDesc('num_cars_available')->first();
-        $parking = CarPark::query()->get()->sortBy(fn (CarPark $park): float => $this->travelTime->distanceMeters(
-            (float) $park->lat,
-            (float) $park->lon,
-            (float) $destination['lat'],
-            (float) $destination['lon'],
-        ))->first();
-        if ($station === null || $parking === null) {
-            return null;
-        }
-
-        $itineraries = [];
-        $latestArrival = 0;
-        $sumArrivals = 0;
-        foreach ($participants as $participant) {
-            $participantZone = $this->cityZone((float) $participant['lat'], (float) $participant['lon']);
-            if (($participant['has_car'] ?? false) || $participantZone === null || $participantZone === $destinationZone) {
-                continue;
+        // 1. Explicit pickup_passengers on drivers
+        foreach ($participants as $p) {
+            if (($p['has_car'] ?? false) && ! empty($p['pickup_passengers'])) {
+                $driverName = $p['name'];
+                foreach ($p['pickup_passengers'] as $passName) {
+                    if (isset($participantsByName[$passName]) && ! ($participantsByName[$passName]['has_car'] ?? false) && ! isset($passengerDriver[$passName])) {
+                        $driverPassengers[$driverName][] = $passName;
+                        $passengerDriver[$passName] = $driverName;
+                    }
+                }
             }
-
-            $walkDistance = $this->travelTime->distanceMeters((float) $participant['lat'], (float) $participant['lon'], (float) $station->lat, (float) $station->lon);
-            $walkToStation = $this->travelTime->durationSeconds((float) $participant['lat'], (float) $participant['lon'], (float) $station->lat, (float) $station->lon, 'walk');
-            $stationDeparture = $startTimeSec + $walkToStation;
-            $carDistance = $this->travelTime->distanceMeters((float) $station->lat, (float) $station->lon, (float) $parking->lat, (float) $parking->lon);
-            $carArrival = $stationDeparture + $this->travelTime->durationSeconds((float) $station->lat, (float) $station->lon, (float) $parking->lat, (float) $parking->lon, 'car');
-            $finalDistance = $this->travelTime->distanceMeters((float) $parking->lat, (float) $parking->lon, (float) $destination['lat'], (float) $destination['lon']);
-            $finalArrival = $carArrival + $this->travelTime->durationSeconds((float) $parking->lat, (float) $parking->lon, (float) $destination['lat'], (float) $destination['lon'], 'walk');
-            $legs = [
-                $this->legBuilder->makeLeg(['mode' => 'walk', 'from' => ['name' => $participant['name'], 'lat' => $participant['lat'], 'lon' => $participant['lon']], 'to' => ['name' => $station->name, 'lat' => $station->lat, 'lon' => $station->lon], 'dep_seconds' => $startTimeSec, 'arr_seconds' => $stationDeparture, 'distance_m' => $walkDistance]),
-                $this->legBuilder->makeLeg(['mode' => 'car_share', 'line' => 'GBFS car', 'from' => ['name' => $station->name, 'lat' => $station->lat, 'lon' => $station->lon], 'to' => ['name' => $parking->name, 'lat' => $parking->lat, 'lon' => $parking->lon], 'dep_seconds' => $stationDeparture, 'arr_seconds' => $carArrival, 'distance_m' => $carDistance]),
-                $this->legBuilder->makeLeg(['mode' => 'walk', 'from' => ['name' => $parking->name, 'lat' => $parking->lat, 'lon' => $parking->lon], 'to' => ['name' => $destination['name'], 'lat' => $destination['lat'], 'lon' => $destination['lon']], 'dep_seconds' => $carArrival, 'arr_seconds' => $finalArrival, 'distance_m' => $finalDistance]),
-            ];
-            $itineraries[] = ['participant' => $participant['name'], 'total_duration_min' => max(1, (int) round(($finalArrival - $startTimeSec) / 60)), 'arrival_at_destination' => $this->legBuilder->formatSeconds($finalArrival), 'wait_min' => 0, 'transfers' => 0, 'walking_m' => $walkDistance + $finalDistance, 'legs' => $legs];
-            $latestArrival = max($latestArrival, $finalArrival);
-            $sumArrivals += $finalArrival;
         }
 
-        return $itineraries === [] ? null : ['title' => 'Voiture partagée GBFS (trajet simple)', 'meeting_points' => [], 'arrival_at_destination' => $this->legBuilder->formatSeconds($latestArrival), 'arrival_sec' => $latestArrival, 'sum_arrivals_sec' => $sumArrivals, 'total_wait_min' => 0, 'total_walking_m' => array_sum(array_column($itineraries, 'walking_m')), 'itineraries' => $itineraries, 'car_decisions' => [], 'strategy_type' => 'gbfs_car'];
+        // 2. Backward compatibility: legacy share_ride on passengers
+        $drivers = array_values(array_filter($participants, fn (array $p): bool => (bool) ($p['has_car'] ?? false)));
+        if ($drivers !== []) {
+            foreach ($participants as $p) {
+                if (! ($p['has_car'] ?? false) && ($p['share_ride'] ?? false)) {
+                    $passName = $p['name'];
+                    if (! isset($passengerDriver[$passName])) {
+                        $driverName = $drivers[0]['name'];
+                        $driverPassengers[$driverName][] = $passName;
+                        $passengerDriver[$passName] = $driverName;
+                    }
+                }
+            }
+        }
+
+        return [
+            'driver_passengers' => $driverPassengers,
+            'passenger_driver' => $passengerDriver,
+        ];
     }
 
-    protected function cityZone(float $lat, float $lon): ?string
-    {
-        if ($lat >= 47.60 && $lat <= 47.70 && $lon >= 6.78 && $lon <= 6.92) {
-            return 'belfort';
-        }
-        if ($lat >= 47.42 && $lat <= 47.57 && $lon >= 6.68 && $lon <= 6.92) {
-            return 'montbeliard';
+    /**
+     * Compute carpool legs for a driver and their assigned passengers to a target location (hub or destination).
+     *
+     * @param  array<string, mixed>  $driver
+     * @param  list<array<string, mixed>>  $passengers
+     * @param  array{name: string, lat: float, lon: float}  $target
+     * @return array{
+     *     driver_legs: list<array<string, mixed>>,
+     *     passenger_legs: array<string, list<array<string, mixed>>>,
+     *     driver_arrival: int,
+     *     passenger_arrivals: array<string, int>,
+     *     passenger_wait_min: array<string, int>
+     * }
+     */
+    protected function computeDriverCarpoolTo(
+        array $driver,
+        array $passengers,
+        array $target,
+        int $startTimeSec
+    ): array {
+        $currLat = (float) $driver['lat'];
+        $currLon = (float) $driver['lon'];
+        $currName = $driver['name'];
+        $currTime = $startTimeSec;
+        $driverLegs = [];
+        $passengerLegs = [];
+        $passengerArrivals = [];
+        $passengerWaitMin = [];
+        $passengerPickupTimes = [];
+
+        foreach ($passengers as $pass) {
+            $passLat = (float) $pass['lat'];
+            $passLon = (float) $pass['lon'];
+            $distToPass = $this->travelTime->distanceMeters($currLat, $currLon, $passLat, $passLon);
+            $driveToPassSec = $this->travelTime->durationSeconds($currLat, $currLon, $passLat, $passLon, 'car');
+            $passPickupTime = $currTime + $driveToPassSec;
+
+            $driverLegs[] = $this->legBuilder->makeLeg([
+                'mode' => 'car',
+                'line' => 'Covoiturage',
+                'from' => ['name' => $currName, 'lat' => $currLat, 'lon' => $currLon],
+                'to' => ['name' => $pass['name'], 'lat' => $passLat, 'lon' => $passLon],
+                'dep_seconds' => $currTime,
+                'arr_seconds' => $passPickupTime,
+                'distance_m' => $distToPass,
+            ]);
+
+            $passengerWaitMin[$pass['name']] = max(0, (int) round(($passPickupTime - $startTimeSec) / 60));
+            $passengerPickupTimes[$pass['name']] = $passPickupTime;
+
+            $currLat = $passLat;
+            $currLon = $passLon;
+            $currTime = $passPickupTime;
+            $currName = $pass['name'];
         }
 
-        return null;
+        // Final drive from last pickup to target
+        $targetLat = (float) $target['lat'];
+        $targetLon = (float) $target['lon'];
+        $distToTarget = $this->travelTime->distanceMeters($currLat, $currLon, $targetLat, $targetLon);
+        $driveToTargetSec = $this->travelTime->durationSeconds($currLat, $currLon, $targetLat, $targetLon, 'car');
+        $arrivalAtTarget = $currTime + $driveToTargetSec;
+
+        $driverLegs[] = $this->legBuilder->makeLeg([
+            'mode' => 'car',
+            'line' => $passengers === [] ? 'Voiture personnelle' : 'Covoiturage',
+            'from' => ['name' => $currName, 'lat' => $currLat, 'lon' => $currLon],
+            'to' => ['name' => $target['name'], 'lat' => $targetLat, 'lon' => $targetLon],
+            'dep_seconds' => $currTime,
+            'arr_seconds' => $arrivalAtTarget,
+            'distance_m' => $distToTarget,
+        ]);
+
+        foreach ($passengers as $pass) {
+            $passName = $pass['name'];
+            $pPickupTime = $passengerPickupTimes[$passName] ?? $startTimeSec;
+            $passLat = (float) $pass['lat'];
+            $passLon = (float) $pass['lon'];
+            $rideDist = $this->travelTime->distanceMeters($passLat, $passLon, $targetLat, $targetLon);
+
+            $passengerLegs[$passName] = [
+                $this->legBuilder->makeLeg([
+                    'mode' => 'car_passenger',
+                    'line' => "Covoiturage avec {$driver['name']}",
+                    'from' => ['name' => $passName, 'lat' => $passLat, 'lon' => $passLon],
+                    'to' => ['name' => $target['name'], 'lat' => $targetLat, 'lon' => $targetLon],
+                    'dep_seconds' => $pPickupTime,
+                    'arr_seconds' => $arrivalAtTarget,
+                    'distance_m' => $rideDist,
+                ]),
+            ];
+            $passengerArrivals[$passName] = $arrivalAtTarget;
+        }
+
+        return [
+            'driver_legs' => $driverLegs,
+            'passenger_legs' => $passengerLegs,
+            'driver_arrival' => $arrivalAtTarget,
+            'passenger_arrivals' => $passengerArrivals,
+            'passenger_wait_min' => $passengerWaitMin,
+        ];
     }
 
     /**
@@ -477,7 +613,7 @@ class MeetingPointFinder
         if (! empty($nearStops)) {
             $csa = $this->csa->earliestArrival($nearStops, $date);
             $bestStopArr = PHP_INT_MAX;
-            $bestStopObj = null;
+            $bestStopId = null;
 
             foreach ($csa['arrivals'] as $stopId => $arrTime) {
                 if (! isset($stops[$stopId])) {
@@ -490,17 +626,25 @@ class MeetingPointFinder
                     $totArr = $arrTime + $walkToDestSec;
                     if ($totArr < $bestStopArr) {
                         $bestStopArr = $totArr;
-                        $bestStopObj = $sObj;
+                        $bestStopId = $stopId;
                     }
                 }
             }
 
             if ($bestStopArr !== PHP_INT_MAX) {
+                // Resolve the actual transit line used for the group leg.
+                [$lineName, $lineMode, $lineColor] = $this->resolveGroupTransitLine(
+                    $bestStopId,
+                    $csa['predecessors'] ?? [],
+                    $routes
+                );
+
                 return [
                     'arrival_sec' => $bestStopArr,
                     'leg' => $this->legBuilder->makeLeg([
-                        'mode' => 'bus',
-                        'line' => 'Ligne de transit collective',
+                        'mode' => $lineMode,
+                        'line' => $lineName,
+                        'line_color' => $lineColor,
                         'from' => ['name' => $hub->name, 'lat' => $hubLat, 'lon' => $hubLon],
                         'to' => ['name' => $destination['name'], 'lat' => $destLat, 'lon' => $destLon],
                         'dep_seconds' => $depSec,
@@ -527,5 +671,42 @@ class MeetingPointFinder
                 'distance_m' => $directDist,
             ]),
         ];
+    }
+
+    /**
+     * Resolve the real transit line name, mode, and colour for the group leg from a hub
+     * by walking the predecessor tree backwards from the alighting stop.
+     *
+     * @param  array<string, array<string, mixed>>  $predecessors
+     * @param  string|null  $stopId  feed-qualified stop id of the alighting stop
+     * @param  Collection<string, Route>  $routes
+     * @return array{string, string, string|null} [lineName, mode, lineColor]
+     */
+    protected function resolveGroupTransitLine(
+        ?string $stopId,
+        array $predecessors,
+        $routes
+    ): array {
+        $curr = $stopId;
+        while ($curr !== null && isset($predecessors[$curr])) {
+            $pred = $predecessors[$curr];
+            if ($pred['type'] === 'transit') {
+                $route = $routes->get($pred['route_id'] ?? '');
+                $isRail = $route && $route->route_type === 2;
+                $lineName = $route ? ($route->short_name ?: $route->long_name) : null;
+
+                return [
+                    $lineName ?? ($isRail ? 'Train régional' : 'Bus'),
+                    $isRail ? 'train' : 'bus',
+                    $route?->route_color,
+                ];
+            }
+            if ($pred['type'] === 'origin') {
+                break;
+            }
+            $curr = $pred['from_stop'] ?? null;
+        }
+
+        return ['Bus', 'bus', null];
     }
 }

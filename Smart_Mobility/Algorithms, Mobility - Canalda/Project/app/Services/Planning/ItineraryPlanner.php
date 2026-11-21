@@ -102,111 +102,115 @@ class ItineraryPlanner
         $stopArrivals = $csaResult['arrivals'];
         $predecessors = $csaResult['predecessors'];
 
-        // 3. Multimodal reach to all candidate meeting points
+        // 3. Multimodal reach to all candidate meeting points.
+        // Car owners drive directly to the destination and never take transit to a hub,
+        // so skip the full candidate hub evaluation for them.
         $candidatesReach = [];
         $routesKeyed = $this->dataset->routes();
 
-        foreach ($candidates as $cand) {
-            $bestCandArrival = PHP_INT_MAX;
-            $bestCandScore = PHP_INT_MAX;
-            $bestCandLegs = [];
-            $nearbyCandidateStops = [];
+        if (! $hasCar) {
+            foreach ($candidates as $cand) {
+                $bestCandArrival = PHP_INT_MAX;
+                $bestCandScore = PHP_INT_MAX;
+                $bestCandLegs = [];
+                $nearbyCandidateStops = [];
 
-            foreach ($stops as $stopId => $stop) {
-                $distance = $this->travelTime->distanceMeters(
-                    (float) $stop->lat,
-                    (float) $stop->lon,
-                    (float) $cand->lat,
-                    (float) $cand->lon
-                );
-                if ($distance <= self::MAX_DESTINATION_WALK_METERS) {
-                    $nearbyCandidateStops[$stopId] = $distance;
+                foreach ($stops as $stopId => $stop) {
+                    $distance = $this->travelTime->distanceMeters(
+                        (float) $stop->lat,
+                        (float) $stop->lon,
+                        (float) $cand->lat,
+                        (float) $cand->lon
+                    );
+                    if ($distance <= self::MAX_DESTINATION_WALK_METERS) {
+                        $nearbyCandidateStops[$stopId] = $distance;
+                    }
                 }
-            }
 
-            // Direct walk from origin to candidate
-            $directWalkDist = $this->travelTime->distanceMeters($pLat, $pLon, $cand->lat, $cand->lon);
-            if ($directWalkDist <= self::MAX_ACCESS_WALK_METERS) {
-                $walkSec = $this->travelTime->durationSeconds($pLat, $pLon, $cand->lat, $cand->lon, 'walk');
-                $arrSec = $routingStartSec + $walkSec;
-                $candidateScore = $this->routeScore($arrSec, $directWalkDist, $latestArrivalSec);
-                if ($candidateScore < $bestCandScore) {
-                    $bestCandArrival = $arrSec;
-                    $bestCandScore = $candidateScore;
-                    $bestCandLegs = [
-                        $this->legBuilder->makeLeg([
-                            'mode' => 'walk',
-                            'from' => ['name' => "Départ ({$pName})", 'lat' => $pLat, 'lon' => $pLon],
-                            'to' => ['name' => $cand->name, 'lat' => $cand->lat, 'lon' => $cand->lon],
-                            'dep_seconds' => $startTimeSec,
-                            'arr_seconds' => $arrSec,
-                            'distance_m' => $directWalkDist,
-                        ]),
+                // Direct walk from origin to candidate
+                $directWalkDist = $this->travelTime->distanceMeters($pLat, $pLon, $cand->lat, $cand->lon);
+                if ($directWalkDist <= self::MAX_ACCESS_WALK_METERS) {
+                    $walkSec = $this->travelTime->durationSeconds($pLat, $pLon, $cand->lat, $cand->lon, 'walk');
+                    $arrSec = $routingStartSec + $walkSec;
+                    $candidateScore = $this->routeScore($arrSec, $directWalkDist, $latestArrivalSec);
+                    if ($candidateScore < $bestCandScore) {
+                        $bestCandArrival = $arrSec;
+                        $bestCandScore = $candidateScore;
+                        $bestCandLegs = [
+                            $this->legBuilder->makeLeg([
+                                'mode' => 'walk',
+                                'from' => ['name' => "Départ ({$pName})", 'lat' => $pLat, 'lon' => $pLon],
+                                'to' => ['name' => $cand->name, 'lat' => $cand->lat, 'lon' => $cand->lon],
+                                'dep_seconds' => $startTimeSec,
+                                'arr_seconds' => $arrSec,
+                                'distance_m' => $directWalkDist,
+                            ]),
+                        ];
+                    }
+                }
+
+                // Transit options: from reachable stops, walk to candidate
+                foreach ($stopArrivals as $stopId => $stopArrSec) {
+                    if (! isset($nearbyCandidateStops[$stopId])) {
+                        continue;
+                    }
+                    $stopObj = $stops[$stopId];
+                    $distStopToCand = $nearbyCandidateStops[$stopId];
+
+                    if ($distStopToCand <= self::MAX_DESTINATION_WALK_METERS) {
+                        $finalWalkSec = $this->travelTime->durationSeconds($stopObj->lat, $stopObj->lon, $cand->lat, $cand->lon, 'walk');
+                        $candArrSec = $stopArrSec + $finalWalkSec;
+                        if ($latestArrivalSec !== null && $candArrSec > $latestArrivalSec) {
+                            continue;
+                        }
+
+                        $legs = $this->reconstructTransitLegs($stopId, $predecessors, $originAccessLegs, $stops, $routesKeyed);
+                        if ($this->isAbsurdTransitRoute($legs, $routingStartSec, $candArrSec, $directWalkDist)) {
+                            continue;
+                        }
+                        $walkingDistance = $this->walkingDistance($legs) + $distStopToCand;
+                        if ($walkingDistance > self::MAX_TOTAL_WALK_METERS) {
+                            continue;
+                        }
+
+                        $candidateScore = $this->routeScore(
+                            $candArrSec,
+                            $walkingDistance,
+                            $latestArrivalSec
+                        );
+                        if ($candidateScore < $bestCandScore) {
+                            $bestCandArrival = $candArrSec;
+                            $bestCandScore = $candidateScore;
+
+                            // Reconstruct legs from origin to candidate
+                            if ($distStopToCand > 50.0) {
+                                $legs[] = $this->legBuilder->makeLeg([
+                                    'mode' => 'walk',
+                                    'from' => ['name' => $stopObj->name, 'lat' => $stopObj->lat, 'lon' => $stopObj->lon],
+                                    'to' => ['name' => $cand->name, 'lat' => $cand->lat, 'lon' => $cand->lon],
+                                    'dep_seconds' => $stopArrSec,
+                                    'arr_seconds' => $candArrSec,
+                                    'distance_m' => $distStopToCand,
+                                ]);
+                            }
+
+                            $bestCandLegs = $legs;
+                        }
+                    }
+                }
+
+                if ($bestCandArrival !== PHP_INT_MAX) {
+                    $candidatesReach[$cand->id] = [
+                        'candidate_id' => $cand->id,
+                        'name' => $cand->name,
+                        'lat' => $cand->lat,
+                        'lon' => $cand->lon,
+                        'arrival_time_sec' => $bestCandArrival,
+                        'legs' => $bestCandLegs,
                     ];
                 }
             }
-
-            // Transit options: from reachable stops, walk to candidate
-            foreach ($stopArrivals as $stopId => $stopArrSec) {
-                if (! isset($nearbyCandidateStops[$stopId])) {
-                    continue;
-                }
-                $stopObj = $stops[$stopId];
-                $distStopToCand = $nearbyCandidateStops[$stopId];
-
-                if ($distStopToCand <= self::MAX_DESTINATION_WALK_METERS) {
-                    $finalWalkSec = $this->travelTime->durationSeconds($stopObj->lat, $stopObj->lon, $cand->lat, $cand->lon, 'walk');
-                    $candArrSec = $stopArrSec + $finalWalkSec;
-                    if ($latestArrivalSec !== null && $candArrSec > $latestArrivalSec) {
-                        continue;
-                    }
-
-                    $legs = $this->reconstructTransitLegs($stopId, $predecessors, $originAccessLegs, $stops, $routesKeyed);
-                    if ($this->isAbsurdTransitRoute($legs, $routingStartSec, $candArrSec, $directWalkDist)) {
-                        continue;
-                    }
-                    $walkingDistance = $this->walkingDistance($legs) + $distStopToCand;
-                    if ($walkingDistance > self::MAX_TOTAL_WALK_METERS) {
-                        continue;
-                    }
-
-                    $candidateScore = $this->routeScore(
-                        $candArrSec,
-                        $walkingDistance,
-                        $latestArrivalSec
-                    );
-                    if ($candidateScore < $bestCandScore) {
-                        $bestCandArrival = $candArrSec;
-                        $bestCandScore = $candidateScore;
-
-                        // Reconstruct legs from origin to candidate
-                        if ($distStopToCand > 50.0) {
-                            $legs[] = $this->legBuilder->makeLeg([
-                                'mode' => 'walk',
-                                'from' => ['name' => $stopObj->name, 'lat' => $stopObj->lat, 'lon' => $stopObj->lon],
-                                'to' => ['name' => $cand->name, 'lat' => $cand->lat, 'lon' => $cand->lon],
-                                'dep_seconds' => $stopArrSec,
-                                'arr_seconds' => $candArrSec,
-                                'distance_m' => $distStopToCand,
-                            ]);
-                        }
-
-                        $bestCandLegs = $legs;
-                    }
-                }
-            }
-
-            if ($bestCandArrival !== PHP_INT_MAX) {
-                $candidatesReach[$cand->id] = [
-                    'candidate_id' => $cand->id,
-                    'name' => $cand->name,
-                    'lat' => $cand->lat,
-                    'lon' => $cand->lon,
-                    'arrival_time_sec' => $bestCandArrival,
-                    'legs' => $bestCandLegs,
-                ];
-            }
-        }
+        } // end if (! $hasCar)
 
         // 4. Reachability to Final Destination
         $destLat = (float) $destination['lat'];
@@ -240,86 +244,88 @@ class ItineraryPlanner
             }
         }
 
-        // Transit to destination
-        $nearbyDestinationStops = [];
-        foreach ($stops as $stopId => $stop) {
-            $distance = $this->travelTime->distanceMeters(
-                (float) $stop->lat,
-                (float) $stop->lon,
-                $destLat,
-                $destLon
-            );
-            if ($distance <= self::MAX_DESTINATION_WALK_METERS) {
-                $nearbyDestinationStops[$stopId] = $distance;
+        // Transit to destination (only for non-car participants)
+        if (! $hasCar) {
+            $nearbyDestinationStops = [];
+            foreach ($stops as $stopId => $stop) {
+                $distance = $this->travelTime->distanceMeters(
+                    (float) $stop->lat,
+                    (float) $stop->lon,
+                    $destLat,
+                    $destLon
+                );
+                if ($distance <= self::MAX_DESTINATION_WALK_METERS) {
+                    $nearbyDestinationStops[$stopId] = $distance;
+                }
             }
-        }
 
-        foreach ($stopArrivals as $stopId => $stopArrSec) {
-            if (! isset($nearbyDestinationStops[$stopId])) {
-                continue;
-            }
-            $stopObj = $stops[$stopId];
-            $distStopToDest = $nearbyDestinationStops[$stopId];
-
-            if ($distStopToDest <= self::MAX_DESTINATION_WALK_METERS) {
-                $finalWalkSec = $this->travelTime->durationSeconds($stopObj->lat, $stopObj->lon, $destLat, $destLon, 'walk');
-                $destArrSec = $stopArrSec + $finalWalkSec;
-                if ($latestArrivalSec !== null && $destArrSec > $latestArrivalSec) {
+            foreach ($stopArrivals as $stopId => $stopArrSec) {
+                if (! isset($nearbyDestinationStops[$stopId])) {
                     continue;
                 }
+                $stopObj = $stops[$stopId];
+                $distStopToDest = $nearbyDestinationStops[$stopId];
 
-                $transitLegs = $this->reconstructTransitLegs($stopId, $predecessors, $originAccessLegs, $stops, $routesKeyed);
-                $walkingMeters = $this->walkingDistance($transitLegs) + $distStopToDest;
-                if ($walkingMeters > self::MAX_TOTAL_WALK_METERS) {
-                    continue;
-                }
-                $directWalkDist = $this->travelTime->distanceMeters($pLat, $pLon, $destLat, $destLon);
-                if ($this->isAbsurdTransitRoute($transitLegs, $routingStartSec, $destArrSec, $directWalkDist)) {
-                    continue;
-                }
-                if ($this->routeScore($destArrSec, $walkingMeters, $latestArrivalSec) < $this->routeScore($bestDestArrival, $bestWalkingMeters, $latestArrivalSec)) {
-                    $bestDestArrival = $destArrSec;
-                    $bestWalkingMeters = $walkingMeters;
-
-                    $legs = $transitLegs;
-                    if ($distStopToDest > 50.0) {
-                        $legs[] = $this->legBuilder->makeLeg([
-                            'mode' => 'walk',
-                            'from' => ['name' => $stopObj->name, 'lat' => $stopObj->lat, 'lon' => $stopObj->lon],
-                            'to' => ['name' => $destination['name'], 'lat' => $destLat, 'lon' => $destLon],
-                            'dep_seconds' => $stopArrSec,
-                            'arr_seconds' => $destArrSec,
-                            'distance_m' => $distStopToDest,
-                        ]);
+                if ($distStopToDest <= self::MAX_DESTINATION_WALK_METERS) {
+                    $finalWalkSec = $this->travelTime->durationSeconds($stopObj->lat, $stopObj->lon, $destLat, $destLon, 'walk');
+                    $destArrSec = $stopArrSec + $finalWalkSec;
+                    if ($latestArrivalSec !== null && $destArrSec > $latestArrivalSec) {
+                        continue;
                     }
 
-                    $bestDestLegs = $legs;
+                    $transitLegs = $this->reconstructTransitLegs($stopId, $predecessors, $originAccessLegs, $stops, $routesKeyed);
+                    $walkingMeters = $this->walkingDistance($transitLegs) + $distStopToDest;
+                    if ($walkingMeters > self::MAX_TOTAL_WALK_METERS) {
+                        continue;
+                    }
+                    $directWalkDist = $this->travelTime->distanceMeters($pLat, $pLon, $destLat, $destLon);
+                    if ($this->isAbsurdTransitRoute($transitLegs, $routingStartSec, $destArrSec, $directWalkDist)) {
+                        continue;
+                    }
+                    if ($this->routeScore($destArrSec, $walkingMeters, $latestArrivalSec) < $this->routeScore($bestDestArrival, $bestWalkingMeters, $latestArrivalSec)) {
+                        $bestDestArrival = $destArrSec;
+                        $bestWalkingMeters = $walkingMeters;
+
+                        $legs = $transitLegs;
+                        if ($distStopToDest > 50.0) {
+                            $legs[] = $this->legBuilder->makeLeg([
+                                'mode' => 'walk',
+                                'from' => ['name' => $stopObj->name, 'lat' => $stopObj->lat, 'lon' => $stopObj->lon],
+                                'to' => ['name' => $destination['name'], 'lat' => $destLat, 'lon' => $destLon],
+                                'dep_seconds' => $stopArrSec,
+                                'arr_seconds' => $destArrSec,
+                                'distance_m' => $distStopToDest,
+                            ]);
+                        }
+
+                        $bestDestLegs = $legs;
+                    }
                 }
             }
-        }
 
-        // Direct walk fallback if close
-        $directWalkToDest = $this->travelTime->distanceMeters($pLat, $pLon, $destLat, $destLon);
-        if ($directWalkToDest <= self::MAX_DIRECT_WALK_METERS) {
-            $walkSec = $this->travelTime->durationSeconds($pLat, $pLon, $destLat, $destLon, 'walk');
-            $arrSec = $routingStartSec + $walkSec;
-            if (($latestArrivalSec === null || $arrSec <= $latestArrivalSec)
-                && $this->routeScore($arrSec, $directWalkToDest, $latestArrivalSec) < $this->routeScore($bestDestArrival, $bestWalkingMeters, $latestArrivalSec)
-            ) {
-                $bestDestArrival = $arrSec;
-                $bestWalkingMeters = $directWalkToDest;
-                $bestDestLegs = [
-                    $this->legBuilder->makeLeg([
-                        'mode' => 'walk',
-                        'from' => ['name' => "Départ ({$pName})", 'lat' => $pLat, 'lon' => $pLon],
-                        'to' => ['name' => $destination['name'], 'lat' => $destLat, 'lon' => $destLon],
-                        'dep_seconds' => $startTimeSec,
-                        'arr_seconds' => $arrSec,
-                        'distance_m' => $directWalkToDest,
-                    ]),
-                ];
+            // Direct walk fallback if close
+            $directWalkToDest = $this->travelTime->distanceMeters($pLat, $pLon, $destLat, $destLon);
+            if ($directWalkToDest <= self::MAX_DIRECT_WALK_METERS) {
+                $walkSec = $this->travelTime->durationSeconds($pLat, $pLon, $destLat, $destLon, 'walk');
+                $arrSec = $routingStartSec + $walkSec;
+                if (($latestArrivalSec === null || $arrSec <= $latestArrivalSec)
+                    && $this->routeScore($arrSec, $directWalkToDest, $latestArrivalSec) < $this->routeScore($bestDestArrival, $bestWalkingMeters, $latestArrivalSec)
+                ) {
+                    $bestDestArrival = $arrSec;
+                    $bestWalkingMeters = $directWalkToDest;
+                    $bestDestLegs = [
+                        $this->legBuilder->makeLeg([
+                            'mode' => 'walk',
+                            'from' => ['name' => "Départ ({$pName})", 'lat' => $pLat, 'lon' => $pLon],
+                            'to' => ['name' => $destination['name'], 'lat' => $destLat, 'lon' => $destLon],
+                            'dep_seconds' => $startTimeSec,
+                            'arr_seconds' => $arrSec,
+                            'distance_m' => $directWalkToDest,
+                        ]),
+                    ];
+                }
             }
-        }
+        } // end if (! $hasCar)
 
         // Compute metrics
         $walkingMeters = 0;

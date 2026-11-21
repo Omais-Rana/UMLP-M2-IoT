@@ -8,6 +8,9 @@ document.addEventListener('DOMContentLoaded', () => {
         max_lon: 6.96
     };
 
+    const bootstrapStops = bootstrap.stops || [];
+    const bootstrapPlaces = bootstrap.places || [];
+
     // Translations Dictionary (EN default, FR alternate)
     const i18n = {
         en: {
@@ -39,7 +42,6 @@ document.addEventListener('DOMContentLoaded', () => {
             leg_carpool: "Carpool (Passenger)",
             leg_train: "TER Train",
             leg_bus: "Urban Bus (Optymo / évolitY)",
-            leg_bike: "Shared Bike",
             leg_walk: "Walking",
             results_title: "Meeting Options",
             option: "Option",
@@ -107,7 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
             leg_carpool: "Covoiturage (Passager)",
             leg_train: "TER Train",
             leg_bus: "Bus Optymo / évolitY",
-            leg_bike: "Vélo partagé",
             leg_walk: "Marche à pied",
             results_title: "Options de Rendez-vous",
             option: "Option",
@@ -264,9 +265,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('legCar').textContent = t('leg_car');
         document.getElementById('legCarpool').textContent = t('leg_carpool');
         document.getElementById('legTrain').textContent = t('leg_train');
-        document.getElementById('legBus').textContent = t('leg_bus');
-        document.getElementById('legBike').textContent = t('leg_bike');
-        document.getElementById('legWalk').textContent = t('leg_walk');
+        if (document.getElementById('legBus')) document.getElementById('legBus').textContent = t('leg_bus');
+        if (document.getElementById('legWalk')) document.getElementById('legWalk').textContent = t('leg_walk');
         document.getElementById('resultsDrawerTitle').textContent = t('results_title');
         const closeDrawerText = document.getElementById('closeDrawerText');
         if (closeDrawerText) closeDrawerText.textContent = t('close_drawer');
@@ -411,7 +411,8 @@ document.addEventListener('DOMContentLoaded', () => {
             lat: lat,
             lon: lon,
             has_car: false,
-            share_ride: false
+            share_ride: false,
+            locationName: `${lat.toFixed(4)}, ${lon.toFixed(4)}`
         });
     });
 
@@ -424,7 +425,9 @@ document.addEventListener('DOMContentLoaded', () => {
             lon: data.lon || 6.8600,
             has_car: Boolean(data.has_car),
             share_ride: Boolean(data.share_ride),
-            color: participantColors[participants.length % participantColors.length]
+            color: participantColors[participants.length % participantColors.length],
+            locationName: data.locationName || null,
+            pickup_passengers: Array.isArray(data.pickup_passengers) ? data.pickup_passengers : []
         };
 
         participants.push(p);
@@ -433,7 +436,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function removeParticipant(id) {
+        const removed = participants.find(p => p.id === id);
         participants = participants.filter(p => p.id !== id);
+        if (removed) {
+            participants.forEach(d => {
+                if (d.has_car && Array.isArray(d.pickup_passengers)) {
+                    d.pickup_passengers = d.pickup_passengers.filter(n => n !== removed.name);
+                }
+            });
+        }
         renderParticipantsList();
         renderParticipantMarkers();
     }
@@ -447,9 +458,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 draggable: true
             }).addTo(participantLayer);
 
+            const driverPickingUp = participants.find(d => d.has_car && (d.pickup_passengers || []).includes(p.name));
             const carDesc = p.has_car
-                ? `🚗 ${t('marker_car_info')}`
-                : `🚶 ${t('marker_no_car')}${p.share_ride ? ` (${t('marker_share_ride')})` : ''}`;
+                ? `🚗 ${t('marker_car_info')}${p.pickup_passengers && p.pickup_passengers.length ? ` (picks up: ${p.pickup_passengers.join(', ')})` : ''}`
+                : (driverPickingUp ? `🚗 Rides with ${driverPickingUp.name}` : `🚶 ${t('marker_no_car')}`);
 
             marker.bindPopup(`<strong>${p.name}</strong><br>${carDesc}`);
 
@@ -457,6 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const coord = e.target.getLatLng();
                 p.lat = parseFloat(coord.lat.toFixed(6));
                 p.lon = parseFloat(coord.lng.toFixed(6));
+                p.locationName = `${p.lat.toFixed(4)}, ${p.lon.toFixed(4)}`;
                 renderParticipantsList();
             });
         });
@@ -479,6 +492,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         participants.forEach((p) => {
+            const nonCarPassengers = participants.filter(other => other.id !== p.id && !other.has_car);
+            const driverPickingUp = participants.find(d => d.has_car && (d.pickup_passengers || []).includes(p.name));
+
             const card = document.createElement('div');
             card.className = 'border border-[#E5E7EB] rounded-xl p-3 bg-white space-y-2.5 shadow-sm transition-all hover:border-gray-300';
             card.innerHTML = `
@@ -490,26 +506,65 @@ document.addEventListener('DOMContentLoaded', () => {
                     <button type="button" class="btn-del text-gray-400 hover:text-red-500 text-sm px-1.5" title="Remove">&times;</button>
                 </div>
 
-                <div class="flex items-center justify-between text-xs text-[#4B5563] pt-1 border-t border-gray-100">
-                    <label class="flex items-center gap-1.5 cursor-pointer select-none">
-                        <input type="checkbox" ${p.has_car ? 'checked' : ''} class="chk-has-car rounded text-[#FF5722] focus:ring-[#FF5722]">
-                        <span class="font-medium text-[#111827]">${t('has_car')}</span>
+                <div class="pt-2 border-t border-gray-100">
+                    <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-[#4B5563]">
+                        Departure location
                     </label>
-                    <span class="text-[11px] font-mono-tag text-gray-500">${p.lat.toFixed(4)}, ${p.lon.toFixed(4)}</span>
+                    <div class="relative participant-location-wrap">
+                        <input type="text"
+                            class="p-loc-input w-full rounded-lg border border-[#E5E7EB] bg-[#FDFDFD] px-3 py-2.5 text-xs text-[#374151] outline-none hover:border-gray-300 focus:border-[#FF5722] focus:ring-1 focus:ring-[#FF5722]"
+                            placeholder="Search bus stop..."
+                            value="${escapeHtml(p.locationName !== null && p.locationName !== undefined ? p.locationName : '')}"
+                            autocomplete="off">
+                        <div class="p-loc-results hidden absolute top-full right-0 mt-1 max-h-48 overflow-y-auto bg-white border border-[#E5E7EB] rounded-lg shadow-xl z-[9999] text-xs" style="min-width:220px;"></div>
+                    </div>
                 </div>
 
-                <div class="car-options ${p.has_car ? 'hidden' : ''} pt-1 border-t border-gray-100">
-                    <label class="flex items-center gap-1.5 text-xs cursor-pointer select-none">
-                        <input type="checkbox" class="chk-share-ride rounded text-[#FF5722] focus:ring-[#FF5722]" ${p.share_ride ? 'checked' : ''}>
-                        <span class="font-medium text-[#111827]">${t('share_ride')}</span>
-                    </label>
+                <label class="flex items-center gap-1.5 cursor-pointer select-none pt-1 text-xs text-[#4B5563]">
+                    <input type="checkbox" ${p.has_car ? 'checked' : ''} class="chk-has-car rounded text-[#FF5722] focus:ring-[#FF5722]">
+                    <span class="font-medium text-[#111827]">${t('has_car')}</span>
+                </label>
+
+                ${p.has_car ? `
+                <div class="driver-options pt-1 border-t border-gray-100">
+                    <div class="text-[11px] font-medium text-gray-700 mb-1">Pick up passengers:</div>
+                    ${nonCarPassengers.length === 0
+                        ? `<div class="text-[10px] text-gray-400 italic">No non-car passengers available</div>`
+                        : `<div class="space-y-1">
+                            ${nonCarPassengers.map(pass => `
+                                <label class="flex items-center gap-1.5 text-xs cursor-pointer select-none">
+                                    <input type="checkbox"
+                                        class="chk-pickup-passenger rounded text-[#FF5722] focus:ring-[#FF5722]"
+                                        data-pass-name="${escapeHtml(pass.name)}"
+                                        ${(p.pickup_passengers || []).includes(pass.name) ? 'checked' : ''}>
+                                    <span class="text-[#374151]">Share ride with ${escapeHtml(pass.name)}</span>
+                                </label>
+                            `).join('')}
+                           </div>`
+                    }
                 </div>
+                ` : `
+                <div class="pt-1 border-t border-gray-100">
+                    ${driverPickingUp
+                        ? `<div class="text-[11px] text-emerald-600 font-medium flex items-center gap-1">🚗 Rides with ${escapeHtml(driverPickingUp.name)}</div>`
+                        : `<div class="text-[10px] text-gray-400">Independent transit / walk</div>`
+                    }
+                </div>
+                `}
             `;
 
             // Event bindings for this card
             const nameInput = card.querySelector('.p-name-input');
             nameInput.addEventListener('change', () => {
-                p.name = nameInput.value;
+                const oldName = p.name;
+                const newName = nameInput.value;
+                p.name = newName;
+                participants.forEach(d => {
+                    if (d.has_car && Array.isArray(d.pickup_passengers)) {
+                        d.pickup_passengers = d.pickup_passengers.map(n => n === oldName ? newName : n);
+                    }
+                });
+                renderParticipantsList();
                 renderParticipantMarkers();
             });
 
@@ -518,21 +573,88 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const chkCar = card.querySelector('.chk-has-car');
-            const carOptions = card.querySelector('.car-options');
             chkCar.addEventListener('change', () => {
                 p.has_car = chkCar.checked;
-                carOptions.classList.toggle('hidden', !p.has_car);
+                p.pickup_passengers = [];
+                participants.forEach(d => {
+                    if (d.has_car && Array.isArray(d.pickup_passengers)) {
+                        d.pickup_passengers = d.pickup_passengers.filter(n => n !== p.name);
+                    }
+                });
+                renderParticipantsList();
                 renderParticipantMarkers();
             });
 
-            card.querySelector('.chk-share-ride').addEventListener('change', (event) => {
-                p.share_ride = event.target.checked;
-                renderParticipantMarkers();
+            card.querySelectorAll('.chk-pickup-passenger').forEach(chk => {
+                chk.addEventListener('change', () => {
+                    const passName = chk.dataset.passName;
+                    p.pickup_passengers = p.pickup_passengers || [];
+                    if (chk.checked) {
+                        if (!p.pickup_passengers.includes(passName)) {
+                            p.pickup_passengers.push(passName);
+                        }
+                    } else {
+                        p.pickup_passengers = p.pickup_passengers.filter(n => n !== passName);
+                    }
+                    renderParticipantsList();
+                    renderParticipantMarkers();
+                });
+            });
+
+            const locInput = card.querySelector('.p-loc-input');
+            const locResults = card.querySelector('.p-loc-results');
+
+            const filterAndShowStops = (filterText) => {
+                const q = (filterText || '').trim().toLowerCase();
+                const matches = q
+                    ? bootstrapStops.filter(s => s.name.toLowerCase().includes(q)).slice(0, 25)
+                    : bootstrapStops.slice(0, 25);
+
+                if (!matches.length) {
+                    locResults.innerHTML = `<div class="p-2 text-center text-gray-400 text-[11px]">No bus stops found</div>`;
+                    locResults.classList.remove('hidden');
+                    return;
+                }
+
+                locResults.innerHTML = matches.map(s =>
+                    `<div class="loc-item px-2.5 py-1.5 hover:bg-gray-100 cursor-pointer flex items-center justify-between text-gray-700 text-[11px]" data-lat="${s.lat}" data-lon="${s.lon}" data-name="${escapeHtml(s.name)}">
+                        <span class="truncate">${escapeHtml(s.name)}</span>
+                        <span class="text-[9px] text-gray-400 font-mono-tag ml-1 shrink-0">${parseFloat(s.lat).toFixed(3)}, ${parseFloat(s.lon).toFixed(3)}</span>
+                    </div>`
+                ).join('');
+                locResults.classList.remove('hidden');
+
+                locResults.querySelectorAll('.loc-item').forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        p.lat = parseFloat(item.dataset.lat);
+                        p.lon = parseFloat(item.dataset.lon);
+                        p.locationName = item.dataset.name;
+                        locInput.value = item.dataset.name;
+                        locResults.classList.add('hidden');
+                        renderParticipantMarkers();
+                        map.panTo([p.lat, p.lon]);
+                    });
+                });
+            };
+
+            locInput.addEventListener('input', (e) => {
+                filterAndShowStops(e.target.value);
+            });
+
+            locInput.addEventListener('focus', () => {
+                filterAndShowStops(locInput.value);
             });
 
             container.appendChild(card);
         });
     }
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.participant-location-wrap')) {
+            document.querySelectorAll('.p-loc-results').forEach(el => el.classList.add('hidden'));
+        }
+    });
 
     // Language Toggle Listeners
     document.getElementById('langEnBtn').addEventListener('click', () => setLanguage('en'));
@@ -544,9 +666,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnClearDestSearch = document.getElementById('btnClearDestSearch');
 
     // Aggregate all destinations (places + stops)
-    const bootstrapStops = bootstrap.stops || [];
-    const bootstrapPlaces = bootstrap.places || [];
-
     const allDestinations = [
         { name: 'UMLP Montbéliard (CAMPUS)', lat: 47.49573, lon: 6.80400, type: 'university', badge: 'University' },
         ...bootstrapPlaces.map(p => ({ ...p, type: 'place', badge: p.category || 'Landmark' })),
@@ -649,7 +768,8 @@ document.addEventListener('DOMContentLoaded', () => {
             name: `Participant ${participants.length + 1}`,
             lat: 47.6350 + (Math.random() - 0.5) * 0.05,
             lon: 6.8600 + (Math.random() - 0.5) * 0.05,
-            has_car: false
+            has_car: false,
+            locationName: ''
         });
     });
 
@@ -692,7 +812,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 lat: p.lat,
                 lon: p.lon,
                 has_car: p.has_car,
-                share_ride: !p.has_car && p.share_ride
+                pickup_passengers: p.has_car ? (p.pickup_passengers || []) : [],
+                share_ride: !p.has_car && participants.some(d => d.has_car && (d.pickup_passengers || []).includes(p.name))
             }))
         };
 
@@ -887,7 +1008,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="font-mono-tag text-[10px] text-gray-500 whitespace-nowrap">${leg.duration_min} min</span>
                 </div>
             `).join('');
-            const hasMultipleStops = it.legs.filter(leg => ['bus', 'train', 'bike', 'shared_car'].includes(leg.mode)).length > 0;
+            const hasMultipleStops = it.legs.filter(leg => ['bus', 'train'].includes(leg.mode)).length > 0;
             const legsContent = hasMultipleStops ? `
                 <details class="group">
                     <summary class="cursor-pointer list-none flex items-center justify-between text-xs font-semibold text-[#111827]">
@@ -1026,9 +1147,7 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'car_passenger': return '👥';
             case 'train': return '🚆';
             case 'bus': return '🚌';
-            case 'bike': return '🚲';
             case 'walk': return '🚶';
-            case 'shared_car': return '🚙';
             default: return '📍';
         }
     }
@@ -1039,7 +1158,6 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'car_passenger': return '#FB923C';
             case 'train': return '#7C3AED';
             case 'bus': return '#2563EB';
-            case 'bike': return '#059669';
             case 'walk': return '#9CA3AF';
             default: return '#6B7280';
         }
