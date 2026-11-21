@@ -641,6 +641,17 @@ add_executable(idAssign applicationsSrc/idAssign/idAssign.cpp applicationsSrc/id
 target_link_libraries(idAssign -lBlinkyBlocks -lfreeglut -lmuparser -lOpenGL32 -lglu32 -lglew32d)
 install(TARGETS idAssign RUNTIME DESTINATION applicationsBin/idAssign)
 
+# BlinkyBlocks target
+add_executable(leaderElection applicationsSrc/leaderElection/leaderElection.cpp applicationsSrc/leaderElection/leaderElectionCode.cpp)
+target_link_libraries(leaderElection -lBlinkyBlocks -lfreeglut -lmuparser -lOpenGL32 -lglu32 -lglew32d)
+install(TARGETS leaderElection RUNTIME DESTINATION applicationsBin/leaderElection)
+
+# Catoms3D target
+add_executable(leaderElectionCatoms3D applicationsSrc/leaderElection/leaderElection.cpp applicationsSrc/leaderElection/leaderElectionCode.cpp)
+target_compile_definitions(leaderElectionCatoms3D PRIVATE USE_CATOMS3D)
+target_link_libraries(leaderElectionCatoms3D -lCatoms3D -lfreeglut -lmuparser -lOpenGL32 -lglu32 -lglew32d)
+install(TARGETS leaderElectionCatoms3D RUNTIME DESTINATION applicationsBin/leaderElection)
+
 #################################################################################
 ############################ REPLAYER ###########################################
 #################################################################################
