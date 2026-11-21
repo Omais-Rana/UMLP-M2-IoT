@@ -7,6 +7,9 @@ use App\Services\Routing\TravelTimeProvider;
 
 class CarAssignment
 {
+    /** In arrive-by mode, aim to arrive this long before the deadline. */
+    private const ARRIVAL_BUFFER_SEC = 2 * 60;
+
     public function __construct(
         protected TravelTimeProvider $travelTime,
         protected LegBuilder $legBuilder,
@@ -30,9 +33,11 @@ class CarAssignment
         array $participants,
         array $participantReachMap,
         array $destination,
-        int $startTimeSec
+        int $startTimeSec,
+        string $timeType = 'depart_at',
+        ?int $requestedTimeSec = null
     ): ?array {
-        $drivers = array_values(array_filter($participants, fn (array $participant): bool => (bool) ($participant['has_car'] ?? false)));
+        $drivers = array_values(array_filter($participants, fn(array $participant): bool => (bool) ($participant['has_car'] ?? false)));
         $passengersByName = [];
         foreach ($participants as $participant) {
             if (! ($participant['has_car'] ?? false)) {
@@ -51,9 +56,11 @@ class CarAssignment
 
         // Backward compatibility for requests that only set share_ride.
         foreach ($participants as $participant) {
-            if (! ($participant['has_car'] ?? false)
+            if (
+                ! ($participant['has_car'] ?? false)
                 && ($participant['share_ride'] ?? false)
-                && ! in_array($participant['name'], array_column($passengers, 'name'), true)) {
+                && ! in_array($participant['name'], array_column($passengers, 'name'), true)
+            ) {
                 $passengers[] = $participant;
             }
         }
@@ -67,7 +74,7 @@ class CarAssignment
         $currentLat = (float) $driver['lat'];
         $currentLon = (float) $driver['lon'];
         $currentTime = $startTimeSec;
-        $carLegs = [];
+        $rawCarLegs = [];
         $pickupEvents = [];
         $pickupSpots = [];
         $remaining = $passengers;
@@ -84,7 +91,8 @@ class CarAssignment
             $passengerLon = (float) $passenger['lon'];
             $distance = $this->travelTime->distanceMeters($currentLat, $currentLon, $passengerLat, $passengerLon);
             $arrival = $currentTime + $this->travelTime->durationSeconds($currentLat, $currentLon, $passengerLat, $passengerLon, 'car');
-            $carLegs[] = $this->legBuilder->makeLeg([
+
+            $rawCarLegs[] = [
                 'mode' => 'car',
                 'line' => 'Covoiturage',
                 'from' => ['name' => $driver['name'], 'lat' => $currentLat, 'lon' => $currentLon],
@@ -92,7 +100,7 @@ class CarAssignment
                 'dep_seconds' => $currentTime,
                 'arr_seconds' => $arrival,
                 'distance_m' => $distance,
-            ]);
+            ];
             $pickupEvents[] = [
                 'who' => $passenger['name'],
                 'at' => $passenger['name'],
@@ -115,7 +123,7 @@ class CarAssignment
 
         $destinationDistance = $this->travelTime->distanceMeters($currentLat, $currentLon, (float) $destination['lat'], (float) $destination['lon']);
         $destinationArrival = $currentTime + $this->travelTime->durationSeconds($currentLat, $currentLon, (float) $destination['lat'], (float) $destination['lon'], 'car');
-        $carLegs[] = $this->legBuilder->makeLeg([
+        $rawCarLegs[] = [
             'mode' => 'car',
             'line' => 'Covoiturage',
             'from' => ['name' => $driver['name'], 'lat' => $currentLat, 'lon' => $currentLon],
@@ -123,7 +131,33 @@ class CarAssignment
             'dep_seconds' => $currentTime,
             'arr_seconds' => $destinationArrival,
             'distance_m' => $destinationDistance,
-        ]);
+        ];
+
+        // In arrive-by mode, shift the entire carpool schedule forward so it arrives just
+        // before $requestedTimeSec instead of departing at the start of the search window.
+        if ($timeType === 'arrive_by' && $requestedTimeSec !== null) {
+            $targetArrivalSec = max(0, $requestedTimeSec - self::ARRIVAL_BUFFER_SEC);
+            $shiftSec = max(0, $targetArrivalSec - $destinationArrival);
+
+            if ($shiftSec > 0) {
+                $startTimeSec += $shiftSec;
+                $destinationArrival += $shiftSec;
+
+                foreach ($rawCarLegs as $idx => $leg) {
+                    $rawCarLegs[$idx]['dep_seconds'] = (int) $leg['dep_seconds'] + $shiftSec;
+                    $rawCarLegs[$idx]['arr_seconds'] = (int) $leg['arr_seconds'] + $shiftSec;
+                }
+
+                foreach ($pickupEvents as $idx => $event) {
+                    $pickupEvents[$idx]['pickup_time_sec'] = (int) $event['pickup_time_sec'] + $shiftSec;
+                }
+            }
+        }
+
+        $carLegs = array_map(
+            fn(array $legParams): array => $this->legBuilder->makeLeg($legParams),
+            $rawCarLegs
+        );
 
         $unpickedItineraries = [];
         foreach ($participants as $participant) {

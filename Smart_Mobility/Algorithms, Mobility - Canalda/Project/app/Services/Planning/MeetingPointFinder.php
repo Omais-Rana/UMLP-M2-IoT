@@ -9,10 +9,26 @@ use App\Services\Routing\ConnectionScan;
 use App\Services\Routing\LegBuilder;
 use App\Services\Routing\TravelTimeProvider;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 
 class MeetingPointFinder
 {
     private const MAX_GROUP_WALK_METERS = 500.0;
+
+    /** Number of hub (meeting point) options returned, in addition to the direct option. */
+    private const HUB_OPTIONS = 2;
+
+    /** Two hub options closer than this (detour-adjusted meters) are not both offered. */
+    private const MIN_HUB_SEPARATION_M = 1000.0;
+
+    /** In arrive-by mode, aim to arrive this long before the deadline. */
+    private const ARRIVAL_BUFFER_SEC = 2 * 60;
+
+    /** Connection scans for the group leg only look this far after the hub departure. */
+    private const GROUP_LEG_SEARCH_WINDOW_SEC = 5400;
+
+    /** @var array<string, array<string, array{distance: float, walk_sec: int}>> */
+    protected array $nearbyStopsCache = [];
 
     public function __construct(
         protected ItineraryPlanner $planner,
@@ -26,6 +42,9 @@ class MeetingPointFinder
     /**
      * Find and rank the best multimodal meeting strategies.
      *
+     * Returns up to HUB_OPTIONS hub strategies (best first) followed by the
+     * direct independent-journey strategy.
+     *
      * @param list<array{
      *     name: string,
      *     lat: float,
@@ -38,7 +57,7 @@ class MeetingPointFinder
      * @param  string  $timeType  ('depart_at' or 'arrive_by')
      * @param  array{name: string, lat: float, lon: float}  $destination
      * @param  string  $objective  ('latest_arrival' or 'sum_arrivals')
-     * @return list<array<string, mixed>> Top 3 ranked options
+     * @return list<array<string, mixed>>
      */
     public function find(
         array $participants,
@@ -49,30 +68,16 @@ class MeetingPointFinder
         string $objective = 'latest_arrival',
         ?callable $onParticipantCompleted = null
     ): array {
+        $t0 = microtime(true);
         $timeParts = explode(':', $time);
         $requestedTimeSec = ((int) ($timeParts[0] ?? 8) * 3600) + ((int) ($timeParts[1] ?? 30) * 60);
         $startTimeSec = $timeType === 'arrive_by'
             ? max(0, $requestedTimeSec - (3 * 3600))
             : $requestedTimeSec;
         $latestArrivalSec = $timeType === 'arrive_by' ? $requestedTimeSec : null;
-
-        // 1. Compute reachability for all participants. Car owners compute only their
-        // direct-to-destination reach (no candidate hubs needed). Arrival-by searches
-        // sample departure times so the result is the latest feasible option.
-        $reachMap = [];
-        foreach ($participants as $p) {
-            $reachMap[$p['name']] = $this->findBestReach(
-                $p,
-                $startTimeSec,
-                $requestedTimeSec,
-                $date,
-                $destination,
-                $latestArrivalSec
-            );
-            if ($onParticipantCompleted !== null) {
-                $onParticipantCompleted($p['name'], count($reachMap));
-            }
-        }
+        $deadlineTarget = $latestArrivalSec !== null
+            ? max(0, $latestArrivalSec - self::ARRIVAL_BUFFER_SEC)
+            : null;
 
         $carpool = $this->resolveCarpoolAssignments($participants);
         $participantsByName = [];
@@ -80,166 +85,453 @@ class MeetingPointFinder
             $participantsByName[$p['name']] = $p;
         }
 
-        // Independent non-car participants (those not picked up by any driver)
+        // Independent non-car participants (those not picked up by any driver).
         $independentNonCarParticipants = array_values(array_filter(
             $participants,
-            fn (array $p): bool => ! ($p['has_car'] ?? false) && ! isset($carpool['passenger_driver'][$p['name']])
+            fn(array $p): bool => ! ($p['has_car'] ?? false) && ! isset($carpool['passenger_driver'][$p['name']])
         ));
+        $independentNames = array_column($independentNonCarParticipants, 'name');
+
+        $hasDrivers = false;
+        foreach ($participants as $p) {
+            if ($p['has_car'] ?? false) {
+                $hasDrivers = true;
+                break;
+            }
+        }
+
+        // 1. Reachability. Only independent riders need a transit search: drivers and
+        // picked-up passengers are routed arithmetically (computeDriverCarpoolTo).
+        $reachMap = [];
+        $completed = 0;
+        foreach ($participants as $p) {
+            if (in_array($p['name'], $independentNames, true)) {
+                if ($deadlineTarget !== null) {
+                    $earliestReach = $this->planner->reach(
+                        $p,
+                        $startTimeSec,
+                        $date,
+                        $destination,
+                        $latestArrivalSec,
+                        true
+                    );
+
+                    $directReach = $this->planner->latestReach(
+                        $p,
+                        $deadlineTarget,
+                        $startTimeSec,
+                        $date,
+                        $destination,
+                        $latestArrivalSec,
+                        false,
+                        $earliestReach
+                    );
+                    $directReach['earliest_candidates_reach'] = $earliestReach['candidates_reach'];
+                    $reachMap[$p['name']] = $directReach;
+                } else {
+                    $reachMap[$p['name']] = $this->planner->reach(
+                        $p,
+                        $startTimeSec,
+                        $date,
+                        $destination
+                    );
+                }
+            }
+            $completed++;
+            if ($onParticipantCompleted !== null) {
+                $onParticipantCompleted($p['name'], $completed);
+            }
+        }
+
+        Log::info('MeetingPointFinder riders done', ['elapsed_s' => round(microtime(true) - $t0, 2)]);
 
         $allStrategies = [];
-        $hubStrategies = [];
-
-        // 2. Hub-based Meeting Point Strategies — all participants converge at the meeting point.
-        // Drivers (and any passengers they pick up) drive to the meeting point first.
-        // Independent non-car participants reach the meeting point via transit/walk.
-        // From the meeting point, the entire group travels together to the destination.
         $candidates = $this->dataset->candidates();
         $stops = $this->dataset->stops();
         $routesKeyed = $this->dataset->routes();
         $destLat = (float) $destination['lat'];
         $destLon = (float) $destination['lon'];
+        $destNearbyStops = $this->getNearbyStops($destLat, $destLon, self::MAX_GROUP_WALK_METERS);
 
+        // Precompute the destination reverse-CSA stop table ONCE for all candidate hubs.
+        $precomputedDestLatestByStop = [];
+        if ($deadlineTarget !== null && $latestArrivalSec !== null && $destNearbyStops !== []) {
+            $targets = $latestArrivalSec > $deadlineTarget
+                ? [$deadlineTarget, $latestArrivalSec]
+                : [$deadlineTarget];
+
+            foreach ($targets as $targetArrivalSec) {
+                $destStopArrivals = [];
+                foreach ($destNearbyStops as $stopId => $near) {
+                    $destStopArrivals[$stopId] = $targetArrivalSec - $near['walk_sec'];
+                }
+
+                $precomputedDestLatestByStop[$targetArrivalSec] = $this->csa->latestDeparture(
+                    $destStopArrivals,
+                    $date,
+                    $startTimeSec
+                );
+            }
+        }
+
+        $why = ['candidates' => 0, 'unreachable' => 0, 'no_group_leg' => 0, 'deadline' => 0, 'ok' => 0];
+        $preliminaryHubs = [];
+
+        // 2. Evaluate all candidate hubs in O(1) without running Forward CSA per hub.
         foreach ($candidates as $cand) {
+            $why['candidates']++;
             $candId = $cand->id;
+
+            // Prune immediately if any independent rider cannot reach this hub.
+            $anyUnreachable = false;
+            foreach ($independentNonCarParticipants as $p) {
+                $pName = $p['name'];
+                $reach = $deadlineTarget !== null
+                    ? ($reachMap[$pName]['earliest_candidates_reach'][$candId] ?? null)
+                    : ($reachMap[$pName]['candidates_reach'][$candId] ?? null);
+                if ($reach === null) {
+                    $anyUnreachable = true;
+                    break;
+                }
+            }
+            if ($anyUnreachable) {
+                $why['unreachable']++;
+                continue;
+            }
+
             $candTarget = [
                 'name' => $cand->name,
                 'lat' => (float) $cand->lat,
                 'lon' => (float) $cand->lon,
             ];
-            $allCanReach = true;
+
+            // 2a. Arrive-by: resolve latest group departure and expected destination arrival in O(1).
+            $groupDepSec = null;
+            $expectedDestArrivalSec = null;
+
+            if ($deadlineTarget !== null && $latestArrivalSec !== null) {
+                $resolved = $this->resolveLatestGroupDepartureFromHub(
+                    $cand,
+                    $destination,
+                    $deadlineTarget,
+                    $latestArrivalSec,
+                    $precomputedDestLatestByStop,
+                    $destNearbyStops
+                );
+                if ($resolved === null) {
+                    $why['no_group_leg']++;
+                    continue;
+                }
+                [$groupDepSec, $expectedDestArrivalSec] = $resolved;
+            }
+
             $arrivalTimes = [];
             $participantLegsToHub = [];
             $participantWaitMin = [];
+            $departSec = [];
+            $allCanReach = true;
 
-            // 2a. Independent non-car participants reach hub via transit/walk
+            // 2b. Independent non-car participants reach the hub via already-computed Step 1 reachability.
             foreach ($independentNonCarParticipants as $p) {
                 $pName = $p['name'];
-                $pReach = $reachMap[$pName]['candidates_reach'][$candId] ?? null;
 
-                if ($pReach === null) {
-                    $allCanReach = false;
-                    break;
+                if ($groupDepSec !== null) {
+                    $earliestCandReach = $reachMap[$pName]['earliest_candidates_reach'][$candId] ?? null;
+                    if ($earliestCandReach === null || $earliestCandReach['arrival_time_sec'] > $groupDepSec) {
+                        $allCanReach = false;
+                        break;
+                    }
+
+                    $arrivalTimes[$pName] = $earliestCandReach['arrival_time_sec'];
+                    $participantLegsToHub[$pName] = $earliestCandReach['legs'];
+                    $participantWaitMin[$pName] = 0;
+                    $departSec[$pName] = $earliestCandReach['start_time_sec'];
+                } else {
+                    $pReach = $reachMap[$pName]['candidates_reach'][$candId] ?? null;
+                    if ($pReach === null) {
+                        $allCanReach = false;
+                        break;
+                    }
+
+                    $arrivalTimes[$pName] = $pReach['arrival_time_sec'];
+                    $participantLegsToHub[$pName] = $pReach['legs'];
+                    $participantWaitMin[$pName] = 0;
+                    $departSec[$pName] = $pReach['start_time_sec'] ?? $reachMap[$pName]['start_time_sec'];
                 }
-
-                $arrivalTimes[$pName] = $pReach['arrival_time_sec'];
-                $participantLegsToHub[$pName] = $pReach['legs'];
-                $participantWaitMin[$pName] = 0;
             }
 
             if (! $allCanReach) {
+                $why['unreachable']++;
                 continue;
             }
 
-            // 2b. Drivers and their picked up passengers drive to the meeting point
+            // 2c. Drivers (and their passengers) drive to the hub.
             foreach ($participants as $p) {
                 if (! ($p['has_car'] ?? false)) {
                     continue;
                 }
                 $driverName = $p['name'];
-                $pickedPassNames = $carpool['driver_passengers'][$driverName] ?? [];
-                $pickedPasses = array_map(fn (string $name): array => $participantsByName[$name], $pickedPassNames);
+                $pickedPasses = array_map(
+                    fn(string $name): array => $participantsByName[$name],
+                    $carpool['driver_passengers'][$driverName] ?? []
+                );
 
-                $carpoolHub = $this->computeDriverCarpoolTo($p, $pickedPasses, $candTarget, $startTimeSec);
+                $carStart = $startTimeSec;
+                $carpoolHub = $this->computeDriverCarpoolTo($p, $pickedPasses, $candTarget, $carStart);
+
+                if ($groupDepSec !== null) {
+                    $carStart = max(0, $carStart + ($groupDepSec - $carpoolHub['driver_arrival']));
+                    $carpoolHub = $this->computeDriverCarpoolTo($p, $pickedPasses, $candTarget, $carStart);
+                }
 
                 $participantLegsToHub[$driverName] = $carpoolHub['driver_legs'];
                 $arrivalTimes[$driverName] = $carpoolHub['driver_arrival'];
                 $participantWaitMin[$driverName] = 0;
+                $departSec[$driverName] = $carStart;
 
                 foreach ($pickedPasses as $pass) {
                     $passName = $pass['name'];
                     $participantLegsToHub[$passName] = $carpoolHub['passenger_legs'][$passName];
                     $arrivalTimes[$passName] = $carpoolHub['passenger_arrivals'][$passName];
                     $participantWaitMin[$passName] = $carpoolHub['passenger_wait_min'][$passName];
+                    $departSec[$passName] = $carStart + $carpoolHub['passenger_wait_min'][$passName] * 60;
                 }
             }
 
-            // Synchronized group departure time from hub (latest participant arrival).
-            $tLeaveHub = max($arrivalTimes);
-
-            // Compute group leg from hub to destination.
-            $groupLeg = $this->computeGroupLegFromHub(
-                $cand,
-                $destination,
-                $tLeaveHub,
-                $date,
-                $stops,
-                $routesKeyed
-            );
-
-            if ($groupLeg === null) {
+            if ($arrivalTimes === []) {
                 continue;
             }
 
-            $finalArrivalSec = $groupLeg['arrival_sec'];
-            if ($latestArrivalSec !== null && $finalArrivalSec > $latestArrivalSec) {
+            $latestAtHub = max($arrivalTimes);
+            $tLeaveHub = $groupDepSec !== null ? max($groupDepSec, $latestAtHub) : $latestAtHub;
+
+            // Lower-bound destination arrival for sorting before building the actual final leg.
+            $directDist = $this->travelTime->distanceMeters((float) $cand->lat, (float) $cand->lon, $destLat, $destLon);
+            $minLegSec = $directDist <= self::MAX_GROUP_WALK_METERS
+                ? $this->travelTime->durationSeconds((float) $cand->lat, (float) $cand->lon, $destLat, $destLon, 'walk')
+                : $this->travelTime->durationSeconds((float) $cand->lat, (float) $cand->lon, $destLat, $destLon, 'car');
+
+            $estArrivalSec = ($expectedDestArrivalSec !== null && $tLeaveHub === $groupDepSec)
+                ? $expectedDestArrivalSec
+                : ($tLeaveHub + $minLegSec);
+
+            if ($latestArrivalSec !== null && $estArrivalSec > $latestArrivalSec) {
+                $why['deadline']++;
                 continue;
             }
 
-            $itineraries = [];
-            $totalWaitMin = 0;
-            $totalWalkingM = 0;
-            $sumArrivals = 0;
-
-            foreach ($participants as $p) {
-                $pName = $p['name'];
-                $hubWaitSec = max(0, $tLeaveHub - $arrivalTimes[$pName]);
-                $hubWaitMin = (int) round($hubWaitSec / 60);
-                $pWaitMin = ($participantWaitMin[$pName] ?? 0) + $hubWaitMin;
-                $totalWaitMin += $pWaitMin;
-
-                $legs = $participantLegsToHub[$pName];
-                $legs[] = $groupLeg['leg'];
-
-                $pWalkingM = 0;
-                foreach ($legs as $l) {
-                    if ($l['mode'] === 'walk') {
-                        $pWalkingM += $l['distance_m'];
-                    }
-                }
-                $totalWalkingM += $pWalkingM;
-                $sumArrivals += $finalArrivalSec;
-
-                $itineraries[] = [
-                    'participant' => $pName,
-                    'total_duration_min' => max(1, (int) round(($finalArrivalSec - $startTimeSec) / 60)),
-                    'arrival_at_destination' => $this->legBuilder->formatSeconds($finalArrivalSec),
-                    'wait_min' => $pWaitMin,
-                    'transfers' => 1,
-                    'walking_m' => $pWalkingM,
-                    'legs' => $legs,
-                ];
-            }
-
-            $hubStrategies[] = [
-                'title' => "Rendez-vous à {$cand->name}",
-                'meeting_points' => [
-                    [
-                        'name' => $cand->name,
-                        'lat' => $cand->lat,
-                        'lon' => $cand->lon,
-                        'type' => $cand->transit_hub ? 'hub' : 'hub_parking',
-                    ],
-                ],
-                'arrival_at_destination' => $this->legBuilder->formatSeconds($finalArrivalSec),
-                'arrival_sec' => $finalArrivalSec,
-                'sum_arrivals_sec' => $sumArrivals,
-                'total_wait_min' => $totalWaitMin,
-                'total_walking_m' => $totalWalkingM,
-                'itineraries' => $itineraries,
-                'car_decisions' => [],
-                'strategy_type' => 'hub',
+            $preliminaryHubs[] = [
+                'cand' => $cand,
+                't_leave_hub' => $tLeaveHub,
+                'est_arrival_sec' => $estArrivalSec,
+                'centrality_m' => $this->candidateCentralityMeters($participants, $cand),
+                'arrival_times' => $arrivalTimes,
+                'legs_to_hub' => $participantLegsToHub,
+                'wait_min' => $participantWaitMin,
+                'depart_sec' => $departSec,
             ];
         }
 
-        // Keep only the single best hub strategy (earliest group arrival, then least walking).
-        if ($hubStrategies !== []) {
-            usort($hubStrategies, fn ($a, $b) => $a['arrival_sec'] !== $b['arrival_sec']
-                ? $a['arrival_sec'] <=> $b['arrival_sec']
-                : $a['total_walking_m'] <=> $b['total_walking_m']);
-            $allStrategies[] = $hubStrategies[0];
+        // Sort preliminary hubs so the best candidates are finalized first,
+        // avoiding Forward CSA calls on dozens of suboptimal hubs.
+        if ($preliminaryHubs !== []) {
+            $earliestEstArrival = min(array_column($preliminaryHubs, 'est_arrival_sec'));
+            $arrivalToleranceSec = 10 * 60;
+
+            $practicalPrelim = array_values(array_filter(
+                $preliminaryHubs,
+                fn(array $h): bool => $h['est_arrival_sec'] <= $earliestEstArrival + $arrivalToleranceSec
+            ));
+            $restPrelim = array_values(array_filter(
+                $preliminaryHubs,
+                fn(array $h): bool => $h['est_arrival_sec'] > $earliestEstArrival + $arrivalToleranceSec
+            ));
+
+            usort(
+                $practicalPrelim,
+                fn(array $a, array $b): int => $a['centrality_m'] <=> $b['centrality_m']
+                    ?: $a['est_arrival_sec'] <=> $b['est_arrival_sec']
+            );
+            usort(
+                $restPrelim,
+                fn(array $a, array $b): int => $a['est_arrival_sec'] <=> $b['est_arrival_sec']
+                    ?: $a['centrality_m'] <=> $b['centrality_m']
+            );
+
+            $orderedPrelim = [...$practicalPrelim, ...$restPrelim];
+            $hubStrategies = [];
+            $maxToEvaluate = $deadlineTarget !== null ? (self::HUB_OPTIONS + 2) : (self::HUB_OPTIONS + 4);
+            $evaluated = 0;
+
+            foreach ($orderedPrelim as $item) {
+                /** @var CandidatePoint $cand */
+                $cand = $item['cand'];
+
+                // Skip early if already too close to a finalized hub.
+                $tooClose = false;
+                foreach ($hubStrategies as $picked) {
+                    $pmp = $picked['meeting_points'][0];
+                    $separation = $this->travelTime->distanceMeters(
+                        (float) $cand->lat,
+                        (float) $cand->lon,
+                        (float) $pmp['lat'],
+                        (float) $pmp['lon']
+                    );
+                    if ($separation < self::MIN_HUB_SEPARATION_M) {
+                        $tooClose = true;
+                        break;
+                    }
+                }
+                if ($tooClose) {
+                    continue;
+                }
+
+                $tLeaveHub = $item['t_leave_hub'];
+                $groupLeg = $this->computeGroupLegFromHub(
+                    $cand,
+                    $destination,
+                    $tLeaveHub,
+                    $date,
+                    $stops,
+                    $routesKeyed,
+                    $destNearbyStops
+                );
+                $evaluated++;
+
+                if ($groupLeg === null) {
+                    $why['no_group_leg']++;
+                    continue;
+                }
+
+                $finalArrivalSec = $groupLeg['arrival_sec'];
+                if ($latestArrivalSec !== null && $finalArrivalSec > $latestArrivalSec) {
+                    $why['deadline']++;
+                    continue;
+                }
+
+                $why['ok']++;
+
+                $itineraries = [];
+                $totalWaitMin = 0;
+                $totalWalkingM = 0;
+                $sumArrivals = 0;
+
+                foreach ($participants as $p) {
+                    $pName = $p['name'];
+                    $hubWaitSec = max(0, $tLeaveHub - $item['arrival_times'][$pName]);
+                    $hubWaitMin = (int) round($hubWaitSec / 60);
+                    $pWaitMin = ($item['wait_min'][$pName] ?? 0) + $hubWaitMin;
+                    $totalWaitMin += $pWaitMin;
+
+                    $legs = $item['legs_to_hub'][$pName];
+                    $legs[] = $groupLeg['leg'];
+
+                    $pWalkingM = 0;
+                    foreach ($legs as $l) {
+                        if ($l['mode'] === 'walk') {
+                            $pWalkingM += $l['distance_m'];
+                        }
+                    }
+                    $totalWalkingM += $pWalkingM;
+                    $sumArrivals += $finalArrivalSec;
+
+                    $itineraries[] = [
+                        'participant' => $pName,
+                        'total_duration_min' => max(1, (int) round(($finalArrivalSec - ($item['depart_sec'][$pName] ?? $startTimeSec)) / 60)),
+                        'arrival_at_destination' => $this->legBuilder->formatSeconds($finalArrivalSec),
+                        'wait_min' => $pWaitMin,
+                        'transfers' => 1,
+                        'walking_m' => $pWalkingM,
+                        'legs' => $legs,
+                    ];
+                }
+
+                $hubStrategies[] = [
+                    'title' => "Rendez-vous à {$cand->name}",
+                    'meeting_points' => [
+                        [
+                            'name' => $cand->name,
+                            'lat' => $cand->lat,
+                            'lon' => $cand->lon,
+                            'type' => $cand->transit_hub ? 'hub' : 'hub_parking',
+                        ],
+                    ],
+                    'arrival_at_destination' => $this->legBuilder->formatSeconds($finalArrivalSec),
+                    'arrival_sec' => $finalArrivalSec,
+                    'sum_arrivals_sec' => $sumArrivals,
+                    'total_wait_min' => $totalWaitMin,
+                    'total_walking_m' => $totalWalkingM,
+                    'centrality_m' => $item['centrality_m'],
+                    'itineraries' => $itineraries,
+                    'car_decisions' => [],
+                    'strategy_type' => 'hub',
+                    '_candidate' => $cand,
+                    '_t_leave_hub' => $tLeaveHub,
+                    '_group_leg' => $groupLeg['leg'],
+                ];
+
+                if (count($hubStrategies) >= self::HUB_OPTIONS && $evaluated >= $maxToEvaluate) {
+                    break;
+                }
+            }
+
+            // Final re-sort in case exact transit leg times shifted relative order slightly.
+            if ($hubStrategies !== []) {
+                $earliestHubArrival = min(array_column($hubStrategies, 'arrival_sec'));
+                $practical = array_values(array_filter(
+                    $hubStrategies,
+                    fn(array $s): bool => $s['arrival_sec'] <= $earliestHubArrival + $arrivalToleranceSec
+                ));
+                $rest = array_values(array_filter(
+                    $hubStrategies,
+                    fn(array $s): bool => $s['arrival_sec'] > $earliestHubArrival + $arrivalToleranceSec
+                ));
+
+                usort(
+                    $practical,
+                    fn(array $a, array $b): int => $a['centrality_m'] <=> $b['centrality_m']
+                        ?: $a['arrival_sec'] <=> $b['arrival_sec']
+                        ?: $a['total_wait_min'] <=> $b['total_wait_min']
+                        ?: $a['total_walking_m'] <=> $b['total_walking_m']
+                );
+                usort(
+                    $rest,
+                    fn(array $a, array $b): int => $a['arrival_sec'] <=> $b['arrival_sec']
+                        ?: $a['centrality_m'] <=> $b['centrality_m']
+                );
+
+                $pickedHubs = array_slice([...$practical, ...$rest], 0, self::HUB_OPTIONS);
+
+                if ($deadlineTarget !== null && $independentNonCarParticipants !== []) {
+                    foreach ($pickedHubs as $idx => $strategy) {
+                        $pickedHubs[$idx] = $this->refinePickedHubForArriveBy(
+                            $strategy,
+                            $independentNonCarParticipants,
+                            $reachMap,
+                            $startTimeSec,
+                            $date
+                        );
+                    }
+                }
+
+                foreach ($pickedHubs as $idx => $strategy) {
+                    unset($pickedHubs[$idx]['_candidate'], $pickedHubs[$idx]['_t_leave_hub'], $pickedHubs[$idx]['_group_leg']);
+                }
+
+                array_push($allStrategies, ...$pickedHubs);
+            }
         }
 
-        // 3. Fallback direct strategy (each participant or carpool goes directly to destination)
+        Log::info('MeetingPointFinder hub filter', $why + [
+            'time_type' => $timeType,
+            'requested' => $this->legBuilder->formatSeconds($requestedTimeSec),
+            'start_window' => $this->legBuilder->formatSeconds($startTimeSec),
+            'has_drivers' => $hasDrivers,
+            'independent_riders' => $independentNames,
+            'elapsed_s' => round(microtime(true) - $t0, 2),
+        ]);
+
+        // 3. Direct strategy (each participant or carpool goes directly to destination)
         $directGroupArrival = 0;
         $directItins = [];
         $directWaitMin = 0;
@@ -271,9 +563,16 @@ class MeetingPointFinder
             }
             $driverName = $p['name'];
             $pickedPassNames = $carpool['driver_passengers'][$driverName] ?? [];
-            $pickedPasses = array_map(fn (string $name): array => $participantsByName[$name], $pickedPassNames);
+            $pickedPasses = array_map(fn(string $name): array => $participantsByName[$name], $pickedPassNames);
 
-            $carpoolDirect = $this->computeDriverCarpoolTo($p, $pickedPasses, $destTarget, $startTimeSec);
+            $carStart = $startTimeSec;
+            $carpoolDirect = $this->computeDriverCarpoolTo($p, $pickedPasses, $destTarget, $carStart);
+
+            // In arrive-by mode, leave as late as possible instead of at the start of the window.
+            if ($deadlineTarget !== null) {
+                $carStart = max(0, $carStart + ($deadlineTarget - $carpoolDirect['driver_arrival']));
+                $carpoolDirect = $this->computeDriverCarpoolTo($p, $pickedPasses, $destTarget, $carStart);
+            }
 
             $driverArrival = $carpoolDirect['driver_arrival'];
             $directGroupArrival = max($directGroupArrival, $driverArrival);
@@ -281,7 +580,7 @@ class MeetingPointFinder
 
             $directItins[] = [
                 'participant' => $driverName,
-                'total_duration_min' => max(1, (int) round(($driverArrival - $startTimeSec) / 60)),
+                'total_duration_min' => max(1, (int) round(($driverArrival - $carStart) / 60)),
                 'arrival_at_destination' => $this->legBuilder->formatSeconds($driverArrival),
                 'wait_min' => 0,
                 'transfers' => 0,
@@ -297,7 +596,7 @@ class MeetingPointFinder
 
                 $directItins[] = [
                     'participant' => $passName,
-                    'total_duration_min' => max(1, (int) round(($driverArrival - $startTimeSec) / 60)),
+                    'total_duration_min' => max(1, (int) round(($driverArrival - $carStart) / 60)),
                     'arrival_at_destination' => $this->legBuilder->formatSeconds($driverArrival),
                     'wait_min' => $passWaitMin,
                     'transfers' => 0,
@@ -324,35 +623,138 @@ class MeetingPointFinder
         if ($latestArrivalSec !== null) {
             $allStrategies = array_values(array_filter(
                 $allStrategies,
-                fn (array $strategy): bool => $strategy['arrival_sec'] <= $latestArrivalSec
+                fn(array $strategy): bool => $strategy['arrival_sec'] <= $latestArrivalSec
             ));
         }
 
-        // 5. Return exactly 2 options: the best hub/meeting-point strategy (first)
-        // and the direct independent-journey strategy (second).
-        $hubOption = null;
+        // 5. Return up to HUB_OPTIONS hub options (best first) followed by the direct option.
+        $hubOptions = [];
         $directOption = null;
 
         foreach ($allStrategies as $strat) {
-            if ($directOption === null && $strat['strategy_type'] === 'direct') {
-                $directOption = $strat;
-            } elseif ($hubOption === null && ($strat['strategy_type'] === 'hub' || ! empty($strat['meeting_points']))) {
-                $hubOption = $strat;
-            }
-            if ($hubOption !== null && $directOption !== null) {
-                break;
+            if ($strat['strategy_type'] === 'direct') {
+                $directOption ??= $strat;
+            } elseif (count($hubOptions) < self::HUB_OPTIONS) {
+                $hubOptions[] = $strat;
             }
         }
 
-        $selected = [];
-        if ($hubOption !== null) {
-            $selected[] = $hubOption;
-        }
-        if ($directOption !== null) {
-            $selected[] = $directOption;
+        Log::info('MeetingPointFinder total done', ['elapsed_s' => round(microtime(true) - $t0, 2)]);
+
+        return $directOption !== null
+            ? [...$hubOptions, $directOption]
+            : $hubOptions;
+    }
+
+    /**
+     * Shift independent riders' home departures as late as possible for a selected hub in arrive-by mode.
+     *
+     * @param  array<string, mixed>  $strategy
+     * @param  list<array<string, mixed>>  $independentNonCarParticipants
+     * @param  array<string, array<string, mixed>>  $reachMap
+     * @return array<string, mixed>
+     */
+    protected function refinePickedHubForArriveBy(
+        array $strategy,
+        array $independentNonCarParticipants,
+        array $reachMap,
+        int $startTimeSec,
+        string $date
+    ): array {
+        /** @var CandidatePoint $cand */
+        $cand = $strategy['_candidate'];
+        $tLeaveHub = (int) $strategy['_t_leave_hub'];
+        $groupLeg = $strategy['_group_leg'];
+        $finalArrivalSec = (int) $strategy['arrival_sec'];
+        $candTarget = [
+            'name' => $cand->name,
+            'lat' => (float) $cand->lat,
+            'lon' => (float) $cand->lon,
+        ];
+
+        $refinedByParticipant = [];
+        foreach ($independentNonCarParticipants as $p) {
+            $pName = $p['name'];
+            $earliestCandReach = $reachMap[$pName]['earliest_candidates_reach'][$cand->id] ?? null;
+            if ($earliestCandReach === null) {
+                continue;
+            }
+
+            // Skip reverse scan if the rider already arrives within 3 minutes of group departure.
+            if (($tLeaveHub - $earliestCandReach['arrival_time_sec']) <= 180) {
+                continue;
+            }
+
+            $candFallbackReach = [
+                'participant' => $pName,
+                'start_time_sec' => $earliestCandReach['start_time_sec'],
+                'earliest_at_destination' => $earliestCandReach['arrival_time_sec'],
+                'best_itinerary_to_destination' => [
+                    'participant' => $pName,
+                    'legs' => $earliestCandReach['legs'],
+                    'total_duration_min' => max(1, (int) round(($earliestCandReach['arrival_time_sec'] - $earliestCandReach['start_time_sec']) / 60)),
+                    'arrival_at_destination' => $this->legBuilder->formatSeconds($earliestCandReach['arrival_time_sec']),
+                    'walking_m' => 0,
+                    'transfers' => 1,
+                    'wait_min' => 0,
+                ],
+                'candidates_reach' => [],
+            ];
+
+            $pReach = $this->planner->latestReach(
+                $p,
+                $tLeaveHub,
+                $startTimeSec,
+                $date,
+                $candTarget,
+                $tLeaveHub,
+                false,
+                $candFallbackReach
+            );
+
+            if ($pReach['earliest_at_destination'] !== PHP_INT_MAX && $pReach['earliest_at_destination'] <= $tLeaveHub) {
+                $legs = $pReach['best_itinerary_to_destination']['legs'];
+                $legs[] = $groupLeg;
+
+                $pWalkingM = 0;
+                foreach ($legs as $l) {
+                    if ($l['mode'] === 'walk') {
+                        $pWalkingM += $l['distance_m'];
+                    }
+                }
+
+                $hubWaitMin = (int) round(max(0, $tLeaveHub - $pReach['earliest_at_destination']) / 60);
+                $refinedByParticipant[$pName] = [
+                    'participant' => $pName,
+                    'total_duration_min' => max(1, (int) round(($finalArrivalSec - $pReach['start_time_sec']) / 60)),
+                    'arrival_at_destination' => $this->legBuilder->formatSeconds($finalArrivalSec),
+                    'wait_min' => $hubWaitMin,
+                    'transfers' => 1,
+                    'walking_m' => $pWalkingM,
+                    'legs' => $legs,
+                ];
+            }
         }
 
-        return $selected;
+        if ($refinedByParticipant === []) {
+            return $strategy;
+        }
+
+        $totalWaitMin = 0;
+        $totalWalkingM = 0;
+        foreach ($strategy['itineraries'] as $idx => $itin) {
+            $pName = $itin['participant'];
+            if (isset($refinedByParticipant[$pName])) {
+                $strategy['itineraries'][$idx] = $refinedByParticipant[$pName];
+            }
+            $totalWaitMin += $strategy['itineraries'][$idx]['wait_min'];
+            $totalWalkingM += $strategy['itineraries'][$idx]['walking_m'];
+        }
+
+        $strategy['total_wait_min'] = $totalWaitMin;
+        $strategy['total_walking_m'] = $totalWalkingM;
+
+        return $strategy;
     }
 
     /**
@@ -388,7 +790,7 @@ class MeetingPointFinder
         }
 
         // 2. Backward compatibility: legacy share_ride on passengers
-        $drivers = array_values(array_filter($participants, fn (array $p): bool => (bool) ($p['has_car'] ?? false)));
+        $drivers = array_values(array_filter($participants, fn(array $p): bool => (bool) ($p['has_car'] ?? false)));
         if ($drivers !== []) {
             foreach ($participants as $p) {
                 if (! ($p['has_car'] ?? false) && ($p['share_ride'] ?? false)) {
@@ -512,51 +914,89 @@ class MeetingPointFinder
     }
 
     /**
-     * @param  array{name: string, lat: float, lon: float, has_car?: bool, share_ride?: bool}  $participant
-     * @return array<string, mixed>
+     * Resolve [latestGroupDepartureSec, expectedDestinationArrivalSec] in O(1) using the precomputed reverse-CSA table.
+     *
+     * @param  array{name: string, lat: float, lon: float}  $destination
+     * @param  array<int, array<string, int>>  $precomputedDestLatestByStop
+     * @param  array<string, array{distance: float, walk_sec: int}>  $destNearbyStops
+     * @return array{0: int, 1: int}|null
      */
-    protected function findBestReach(
-        array $participant,
-        int $earliestStartSec,
-        int $latestStartSec,
-        string $date,
+    protected function resolveLatestGroupDepartureFromHub(
+        CandidatePoint $hub,
         array $destination,
-        ?int $latestArrivalSec
-    ): array {
-        if ($latestArrivalSec === null) {
-            return $this->planner->reach($participant, $latestStartSec, $date, $destination);
+        int $deadlineTarget,
+        int $latestArrivalSec,
+        array $precomputedDestLatestByStop,
+        array $destNearbyStops
+    ): ?array {
+        $targets = [$deadlineTarget];
+        if ($latestArrivalSec > $deadlineTarget) {
+            $targets[] = $latestArrivalSec;
         }
 
-        // A full connection scan is expensive. Four one-hour samples provide
-        // a practical latest-feasible departure search without 10-minute scans.
-        $stepSec = 60 * 60;
-        $bestReach = null;
+        $destLat = (float) $destination['lat'];
+        $destLon = (float) $destination['lon'];
+        $hubLat = (float) $hub->lat;
+        $hubLon = (float) $hub->lon;
 
-        for ($searchStartSec = $earliestStartSec; $searchStartSec <= $latestStartSec; $searchStartSec += $stepSec) {
-            $reach = $this->planner->reach(
-                $participant,
-                $searchStartSec,
-                $date,
-                $destination,
-                $latestArrivalSec
+        $hubNearbyStops = $this->getNearbyStops($hubLat, $hubLon, self::MAX_GROUP_WALK_METERS);
+
+        foreach ($targets as $targetArrivalSec) {
+            // 1. Direct walk if within walking distance
+            $directDist = $this->travelTime->distanceMeters($hubLat, $hubLon, $destLat, $destLon);
+            if ($directDist <= self::MAX_GROUP_WALK_METERS) {
+                $walkSec = $this->travelTime->durationSeconds($hubLat, $hubLon, $destLat, $destLon, 'walk');
+                $depSec = $targetArrivalSec - $walkSec;
+                if ($depSec >= 0) {
+                    return [$depSec, $targetArrivalSec];
+                }
+            }
+
+            // 2. Transit via precomputed reverse-CSA stop table
+            $latestByStop = $precomputedDestLatestByStop[$targetArrivalSec] ?? [];
+            if ($hubNearbyStops !== [] && $destNearbyStops !== [] && $latestByStop !== []) {
+                $bestDep = null;
+                foreach ($hubNearbyStops as $stopId => $near) {
+                    if (isset($latestByStop[$stopId])) {
+                        $dep = $latestByStop[$stopId] - $near['walk_sec'];
+                        if ($dep >= 0 && ($bestDep === null || $dep > $bestDep)) {
+                            $bestDep = $dep;
+                        }
+                    }
+                }
+                if ($bestDep !== null) {
+                    return [$bestDep, $targetArrivalSec];
+                }
+            }
+
+            // 3. Car / Bus shuttle fallback
+            $driveSec = $this->travelTime->durationSeconds($hubLat, $hubLon, $destLat, $destLon, 'car');
+            $depSec = $targetArrivalSec - $driveSec;
+            if ($depSec >= 0) {
+                return [$depSec, $targetArrivalSec];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Measure how close a candidate hub is to the whole participant group.
+     */
+    protected function candidateCentralityMeters(array $participants, CandidatePoint $candidate): float
+    {
+        $totalDistance = 0.0;
+
+        foreach ($participants as $participant) {
+            $totalDistance += $this->travelTime->distanceMeters(
+                (float) $participant['lat'],
+                (float) $participant['lon'],
+                (float) $candidate->lat,
+                (float) $candidate->lon
             );
-
-            if ($reach['earliest_at_destination'] === PHP_INT_MAX) {
-                continue;
-            }
-
-            if ($bestReach === null || $reach['earliest_at_destination'] > $bestReach['earliest_at_destination']) {
-                $bestReach = $reach;
-            }
         }
 
-        return $bestReach ?? $this->planner->reach(
-            $participant,
-            $earliestStartSec,
-            $date,
-            $destination,
-            $latestArrivalSec
-        );
+        return $totalDistance;
     }
 
     /**
@@ -565,6 +1005,7 @@ class MeetingPointFinder
      * @param  array{name: string, lat: float, lon: float}  $destination
      * @param  Collection<string, Stop>  $stops
      * @param  Collection<string, Route>  $routes
+     * @param  array<string, array{distance: float, walk_sec: int}>|null  $destNearbyStops
      * @return array{leg: array<string, mixed>, arrival_sec: int}|null
      */
     protected function computeGroupLegFromHub(
@@ -573,7 +1014,8 @@ class MeetingPointFinder
         int $depSec,
         string $date,
         $stops,
-        $routes
+        $routes,
+        ?array $destNearbyStops = null
     ): ?array {
         $destLat = (float) $destination['lat'];
         $destLon = (float) $destination['lon'];
@@ -601,38 +1043,31 @@ class MeetingPointFinder
         }
 
         // 2. Look for transit from nearby stop to destination stop
-        $nearStops = [];
-        foreach ($stops as $s) {
-            $dist = $this->travelTime->distanceMeters($hubLat, $hubLon, $s->lat, $s->lon);
-            if ($dist <= self::MAX_GROUP_WALK_METERS) {
-                $walkTime = $this->travelTime->durationSeconds($hubLat, $hubLon, $s->lat, $s->lon, 'walk');
-                $nearStops[$s->feed_id.':'.$s->stop_id] = $depSec + $walkTime;
-            }
-        }
+        $hubNearbyStops = $this->getNearbyStops($hubLat, $hubLon, self::MAX_GROUP_WALK_METERS);
+        $destNearbyStops ??= $this->getNearbyStops($destLat, $destLon, self::MAX_GROUP_WALK_METERS);
 
-        if (! empty($nearStops)) {
-            $csa = $this->csa->earliestArrival($nearStops, $date);
+        if ($hubNearbyStops !== [] && $destNearbyStops !== []) {
+            $nearStops = [];
+            foreach ($hubNearbyStops as $stopId => $near) {
+                $nearStops[$stopId] = $depSec + $near['walk_sec'];
+            }
+
+            $csa = $this->csa->earliestArrival($nearStops, $date, $depSec + self::GROUP_LEG_SEARCH_WINDOW_SEC);
             $bestStopArr = PHP_INT_MAX;
             $bestStopId = null;
 
-            foreach ($csa['arrivals'] as $stopId => $arrTime) {
-                if (! isset($stops[$stopId])) {
+            foreach ($destNearbyStops as $stopId => $nearDest) {
+                if (! isset($csa['arrivals'][$stopId])) {
                     continue;
                 }
-                $sObj = $stops[$stopId];
-                $distToDest = $this->travelTime->distanceMeters($sObj->lat, $sObj->lon, $destLat, $destLon);
-                if ($distToDest <= self::MAX_GROUP_WALK_METERS) {
-                    $walkToDestSec = $this->travelTime->durationSeconds($sObj->lat, $sObj->lon, $destLat, $destLon, 'walk');
-                    $totArr = $arrTime + $walkToDestSec;
-                    if ($totArr < $bestStopArr) {
-                        $bestStopArr = $totArr;
-                        $bestStopId = $stopId;
-                    }
+                $totArr = $csa['arrivals'][$stopId] + $nearDest['walk_sec'];
+                if ($totArr < $bestStopArr) {
+                    $bestStopArr = $totArr;
+                    $bestStopId = $stopId;
                 }
             }
 
             if ($bestStopArr !== PHP_INT_MAX) {
-                // Resolve the actual transit line used for the group leg.
                 [$lineName, $lineMode, $lineColor] = $this->resolveGroupTransitLine(
                     $bestStopId,
                     $csa['predecessors'] ?? [],
@@ -671,6 +1106,43 @@ class MeetingPointFinder
                 'distance_m' => $directDist,
             ]),
         ];
+    }
+
+    /**
+     * Find and memoize stops within $maxMeters of a coordinate using a fast bounding-box pre-filter.
+     *
+     * @return array<string, array{distance: float, walk_sec: int}>
+     */
+    protected function getNearbyStops(float $lat, float $lon, float $maxMeters): array
+    {
+        $cacheKey = round($lat, 6) . ':' . round($lon, 6) . ':' . (int) $maxMeters;
+        if (isset($this->nearbyStopsCache[$cacheKey])) {
+            return $this->nearbyStopsCache[$cacheKey];
+        }
+
+        $latDelta = ($maxMeters / 111320.0) * 1.25;
+        $lonScale = max(0.2, cos(deg2rad($lat)));
+        $lonDelta = ($maxMeters / (111320.0 * $lonScale)) * 1.25;
+
+        $nearby = [];
+        foreach ($this->dataset->stops() as $stopId => $stop) {
+            $sLat = (float) $stop->lat;
+            $sLon = (float) $stop->lon;
+
+            if (abs($sLat - $lat) > $latDelta || abs($sLon - $lon) > $lonDelta) {
+                continue;
+            }
+
+            $distance = $this->travelTime->distanceMeters($lat, $lon, $sLat, $sLon);
+            if ($distance <= $maxMeters) {
+                $nearby[$stopId] = [
+                    'distance' => $distance,
+                    'walk_sec' => $this->travelTime->durationSeconds($lat, $lon, $sLat, $sLon, 'walk'),
+                ];
+            }
+        }
+
+        return $this->nearbyStopsCache[$cacheKey] = $nearby;
     }
 
     /**

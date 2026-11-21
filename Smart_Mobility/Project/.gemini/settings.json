@@ -1,0 +1,21 @@
+{
+    "mcpServers": {
+        "laravel-boost": {
+            "command": "php",
+            "args": [
+                "artisan",
+                "boost:mcp"
+            ],
+            "cwd": "D:/Work/Venturo"
+        },
+        "herd": {
+            "command": "php",
+            "args": [
+                "C:/Users/Insomnyac/.config/herd/bin/herd-mcp.phar"
+            ],
+            "env": {
+                "SITE_PATH": "D:/Work/Venturo"
+            }
+        }
+    }
+}

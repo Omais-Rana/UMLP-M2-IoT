@@ -124,6 +124,8 @@ This file records the mobility-platform improvements completed in this conversat
 - Fixed the loader helpers being scoped inside the map-marker factory, which prevented the calculate handler from starting progress polling.
 - Reduced timetable memory pressure by streaming active stop times through a feed-qualified `stop_times`/`trips` join, avoiding materialization of all trip IDs and a large `whereIn` parameter list.
 - Changed timetable connection generation to stream SQL-built adjacent connections in departure order, eliminating the full PHP connection array, its sort-time copy, and oversized cache writes.
+- Added geographic centrality to hub ranking: eligible candidates within 10 minutes of the earliest hub arrival are ranked by their total distance to all participant origins, preventing a fixed or ordered hub from dominating when the participant group is geographically distributed.
+- Added a Montbéliard fixture regression verifying that distributed participants do not receive Acropole as an automatic fake hub.
 - Streamlined meeting point selection: instead of retaining multiple candidate hubs, `MeetingPointFinder` now evaluates hub candidates and retains only the single best hub (earliest group arrival at destination, then least walking).
 - Restricted options to exactly two outcomes: exactly one meeting point option (hub convergence or carpool) followed by one direct independent journey option, simplifying choices and avoiding redundant results.
 - Excluded car owners from transit hub convergence: car owners are skipped during candidate hub reachability in `ItineraryPlanner` and drive directly to destination in hub strategies, ensuring personal car owners receive car transport only.
@@ -134,6 +136,52 @@ This file records the mobility-platform improvements completed in this conversat
 - Driver-specific passenger selection for multiple drivers (Problem 3): replaced the ambiguous generic "Share ride" checkbox on passenger cards with dynamic driver-specific passenger selection options ("Share ride with Passenger A", "Share ride with Passenger B") on each driver's card, allowing clear many-to-many driver-passenger assignment.
 - Removed Optymo velo and car rental services (Problem 4): removed all GBFS shared car (`gbfs_car`, `car_share`) and bike rental (`bike`, `velo`) logic, commands (`ImportGbfs`), models, views, and test suites, focusing the platform strictly on urban buses, regional trains, and personal cars/carpools.
 - Maintained full test suite and code style: all PHPUnit tests pass, Laravel Pint cleanly applied, and production frontend assets rebuilt with Vite.
+
+### Phase 2: Static public places from Montbéliard and Belfort
+
+**Dynamic candidate generation removed:**
+- Deleted `App\Console\Commands\BuildCandidates` and its `php artisan mobility:build-candidates` command.
+- Removed `Artisan::call('mobility:build-candidates')` from `ImportGtfs::handle()` and the `Artisan` facade import.
+- Deleted the `tests/Fixtures/gtfs/hubs` fixture (GTJSON with Hub Alpha/Beta/Gamma) used for dynamic generation testing.
+- Deleted `tests/Feature/HubSelectionTest` (tested dynamic generation scenarios).
+
+**Static meeting points from `candidates.json`:**
+- The curated `storage/app/data/candidates.json` contains public places from Montbéliard and Belfort (e.g., Gare de Montbéliard, Gare de Belfort, Place Corbis, Place de la Halle, Audincourt Temple, Valentigney Centre, Acropole, etc.).
+- These are the meeting point catalog — imported via `mobility:import-gtfs` into `candidate_points` via `CandidatePoint::updateOrCreate`.
+- The system already matches static meeting points with transit: `computeGroupLegFromHub()` finds the best transit route from stops near the meeting point to stops near the destination.
+
+**Performance improvements retained:**
+- Added reachability-based ranking in `MeetingPointFinder::find()`: candidates are ranked by how many independent participants can reach them (descending), then by distance to the group centroid. This prioritizes valid meeting points over distant ones.
+- Added evaluation fallback: if the top `mobility.max_candidate_evaluations` (default 50) candidates don't produce hub strategies, evaluation continues up to `totalEvalLimit` (`max(100, max_candidate_evaluations × 4)` = 200 by default). This ensures meeting points are found even when the closest candidates lack valid transit to destinations.
+- Removed spatial pruning from `ItineraryPlanner::reach()` so `candidates_reach` includes all reachable candidates; reachability counting is now done in `find()`.
+- Added new config option `mobility.max_candidate_evaluations` (default 50, env `MOBILITY_MAX_CANDIDATE_EVALUATIONS`).
+
+**Validation after dynamic generation removal:**
+- 23 PHPUnit tests and 117 assertions pass; Laravel Pint reports no style issues.
+
+### Dead data-path cleanup
+
+- Removed the car-park import from `mobility:import-gtfs`; `car_parks.json` is no longer read or persisted.
+- Removed the `mobility:import-car-parks` Overpass command and its feature tests.
+- Removed the `CarPark`, `BikeStation`, and `CarShareStation` models.
+- Added a migration dropping the `car_parks`, `bike_stations`, and `car_share_stations` tables; the migration recreates their schemas on rollback.
+- Removed the unused `bike` and `shared_car` travel modes from `TravelTimeProvider`, `HaversineTravelTime`, and `LegBuilder`, along with `bike_speed_kmh` and the unused GBFS configuration block.
+- Removed the unused `candidates`, `car_parks`, and `bike_stations` keys from the bootstrap payload; the frontend only consumed `places`, `stops`, and `bounding_box`.
+- Retired the static matrix: deleted `mobility:build-matrix`, `BuildStaticMatrix`, `TransitiveClosure`, its unit test, the `DemoScenarioSeeder` call, and `storage/app/data/static_matrix.json`.
+- Deleted the now-unused `storage/app/data/car_parks.json` artifact.
+- Kept `candidates.json` as the meeting-point hub catalog and `places.json` as the destination list; both remain in active use.
+- Noted that `Plan.md` remains the original specification; its static-matrix acceptance item is no longer implemented.
+- Validation after cleanup: 23 PHPUnit tests and 117 assertions pass, Laravel Pint reports no style issues, and the new migration applies cleanly.
+
+### Phase 1: Travel-time hub metrics, Pareto selection, phantom-car fix, pickup limits, reverse CSA
+
+- Replaced geometric `candidateCentralityMeters` ranking with travel-time-based Pareto front ranking using `arrival_sec`, `sum_travel_to_hub_sec`, `max_travel_to_hub_sec`, `total_wait_min`, `max_wait_min`, and `total_walking_m`; hubs are now non-dominated multi-objective options.
+- Return up to 3 Pareto-optimal hub options plus the direct fallback (max 4 options), with spatial diversity enforced (minimum 1 km separation); update `tests/Feature/PlanApiTest.php` option count from `<= 3` to accept 3–4.
+- Fixed phantom car fallback: `computeGroupLegFromHub()` now returns `null` when no participant owns a car, instead of inventing a `Navette / Covoiturage final` car leg; group leg now reports real transit `line`, `mode`, and `color` via CSA predecessor chain, with `transfers` count.
+- Optimized carpool pickup order: `resolveCarpoolAssignments()` now uses nearest-neighbour ordering + 2-opt routing, and enforces `max_detour_min` and `max_wait_min` from `config/mobility.php`; waiting is interpreted as passenger wait at origin.
+- Replaced hourly `findBestReach` sampling for `arrive_by` with reverse CSA `ConnectionScan::latestDeparture` via new `ItineraryPlanner::latestReach()`; `ItineraryPlanner::reach()` now returns `start_time_sec` for correct duration calculation.
+- Added `start_time_sec` to `ItineraryPlanner::reach()` return value; added `ItineraryPlanner::latestReach()` using reverse connection scan.
+- Documented every modification in `changes.md`.
 
 ## Planned from now
 

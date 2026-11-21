@@ -1,0 +1,2 @@
+agency_name,agency_id,agency_url,agency_timezone,agency_lang,agency_phone
+RÃ©seau Prototype,agency-1,https://example.test,Europe/Paris,fr,+33123456789

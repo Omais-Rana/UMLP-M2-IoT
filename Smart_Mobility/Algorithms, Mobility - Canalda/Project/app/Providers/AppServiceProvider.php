@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Services\Planning\PlanningDataset;
+use App\Services\Routing\ConnectionScan;
 use App\Services\Routing\HaversineTravelTime;
 use App\Services\Routing\TravelTimeProvider;
 use Illuminate\Support\ServiceProvider;
@@ -18,6 +19,8 @@ class AppServiceProvider extends ServiceProvider
             TravelTimeProvider::class,
             HaversineTravelTime::class
         );
+
+        $this->app->singleton(ConnectionScan::class);
 
         $this->app->scoped(PlanningDataset::class);
     }

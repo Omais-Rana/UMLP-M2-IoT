@@ -1,0 +1,109 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../views/**/*.blade.php';
+@source '../js/**/*.js';
+
+@theme {
+    --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-serif: 'Newsreader', Georgia, Cambria, 'Times New Roman', serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    --color-primary: #FF5722;
+    --color-primary-hover: #E64A19;
+    --color-secondary: #121212;
+    --color-surface: #E5E7EB;
+    --color-surface-card: #FFFFFF;
+    --color-bg: #FDFDFD;
+    --color-border: #E5E7EB;
+    --color-text-primary: #111827;
+    --color-text-secondary: #4B5563;
+}
+
+/* Custom Sentinel utility classes */
+.font-display {
+    font-family: 'Inter', sans-serif;
+    letter-spacing: -0.02em;
+}
+
+.font-editorial {
+    font-family: 'Newsreader', serif;
+}
+
+.font-mono-meta {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.sentinel-card {
+    background-color: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px -2px rgba(18, 18, 18, 0.05);
+}
+
+.sentinel-control {
+    border-radius: 8px;
+    border: 1px solid #E5E7EB;
+    background-color: #FDFDFD;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sentinel-control:focus {
+    outline: none;
+    border-color: #FF5722;
+    box-shadow: 0 0 0 3px rgba(255, 87, 34, 0.15);
+}
+
+.sentinel-btn-primary {
+    background-color: #FF5722;
+    color: #FFFFFF;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sentinel-btn-primary:hover {
+    background-color: #E64A19;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px 0 rgba(255, 87, 34, 0.39);
+}
+
+.sentinel-pill {
+    border-radius: 9999px;
+}
+
+/* Custom Leaflet Map styling */
+.leaflet-container {
+    background: #F3F4F6 !important;
+    font-family: 'Inter', sans-serif !important;
+}
+
+.meeting-point-tooltip {
+    background: #111827;
+    border: 0;
+    border-radius: 6px;
+    box-shadow: 0 4px 10px rgba(17, 24, 39, 0.2);
+    color: #FFFFFF;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
+}
+
+.meeting-point-tooltip::before {
+    border-top-color: #111827;
+}
+
+.leaflet-popup-content-wrapper {
+    border-radius: 12px !important;
+    border: 1px solid #E5E7EB !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;
+    padding: 4px !important;
+}
+
+.leaflet-popup-content {
+    font-family: 'Inter', sans-serif !important;
+    margin: 12px 14px !important;
+    line-height: 1.4 !important;
+}

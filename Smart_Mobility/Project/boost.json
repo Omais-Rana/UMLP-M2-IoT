@@ -1,0 +1,17 @@
+{
+    "agents": [
+        "antigravity"
+    ],
+    "cloud": true,
+    "packages": [
+        "filament/filament"
+    ],
+    "skills": [
+        "infer-conventions",
+        "deploying-to-cloud",
+        "laravel-best-practices",
+        "testing-best-practices",
+        "tailwindcss-development",
+        "filament-development"
+    ]
+}
