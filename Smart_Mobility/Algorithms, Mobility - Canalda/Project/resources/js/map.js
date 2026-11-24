@@ -78,7 +78,19 @@ document.addEventListener('DOMContentLoaded', () => {
             no_midpoint: "No shared midpoint — participants travel independently",
             carpool_pickup_strategy: "Carpool pickup on route — destination convergence",
             show_route_details: "Show route details",
-            hide_route_details: "Hide route details"
+            hide_route_details: "Hide route details",
+            enter_code_placeholder: "Enter code...",
+            load_code_btn: "Enter",
+            generate_code: "Generate Code",
+            generating_code: "Generating...",
+            share_modal_title: "Share Planned Route",
+            share_modal_desc: "Anyone with this code can load and view this planned route directly.",
+            share_modal_code_label: "Share Code",
+            share_modal_expires: "Expires in 30 minutes",
+            copy_code: "Copy Code",
+            code_copied: "✓ Copied!",
+            code_not_found: "Shared plan not found or invalid code.",
+            code_empty: "Please enter a code to load."
         },
         fr: {
             page_title: "Smart Mobility — Planificateur Multimodal de Rendez-vous (Belfort & Montbéliard)",
@@ -145,7 +157,19 @@ document.addEventListener('DOMContentLoaded', () => {
             no_midpoint: "Aucun point de rendez-vous partagé — trajets indépendants",
             carpool_pickup_strategy: "Ramassage covoiturage sur trajet — convergence à destination",
             show_route_details: "Afficher le détail du trajet",
-            hide_route_details: "Masquer le détail du trajet"
+            hide_route_details: "Masquer le détail du trajet",
+            enter_code_placeholder: "Entrer le code...",
+            load_code_btn: "Entrer",
+            generate_code: "Générer un Code",
+            generating_code: "Génération...",
+            share_modal_title: "Partager l'Itinéraire Planifié",
+            share_modal_desc: "Toute personne disposant de ce code peut charger et voir cet itinéraire directement.",
+            share_modal_code_label: "Code de Partage",
+            share_modal_expires: "Expire dans 30 minutes",
+            copy_code: "Copier le Code",
+            code_copied: "✓ Copié !",
+            code_not_found: "Itinéraire partagé introuvable ou code invalide.",
+            code_empty: "Veuillez saisir un code à charger."
         }
     };
 
@@ -274,6 +298,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (floatingResultsText) floatingResultsText.textContent = t('floating_results');
         const btnToggleLeftSidebarEl = document.getElementById('btnToggleLeftSidebar');
         if (btnToggleLeftSidebarEl) btnToggleLeftSidebarEl.title = t('toggle_controls');
+
+        const inputShareCodeEl = document.getElementById('inputShareCode');
+        if (inputShareCodeEl) inputShareCodeEl.placeholder = t('enter_code_placeholder');
+        const btnLoadShareCodeTextEl = document.getElementById('btnLoadShareCodeText');
+        if (btnLoadShareCodeTextEl) btnLoadShareCodeTextEl.textContent = t('load_code_btn');
+        const shareModalTitleEl = document.getElementById('shareModalTitle');
+        if (shareModalTitleEl) shareModalTitleEl.textContent = t('share_modal_title');
+        const shareModalDescEl = document.getElementById('shareModalDesc');
+        if (shareModalDescEl) shareModalDescEl.textContent = t('share_modal_desc');
+        const shareModalCodeLabelEl = document.getElementById('shareModalCodeLabel');
+        if (shareModalCodeLabelEl) shareModalCodeLabelEl.textContent = t('share_modal_code_label');
+        const shareModalExpiresTextEl = document.getElementById('shareModalExpiresText');
+        if (shareModalExpiresTextEl) shareModalExpiresTextEl.textContent = t('share_modal_expires');
+        const btnCopyShareCodeTextEl = document.getElementById('btnCopyShareCodeText');
+        if (btnCopyShareCodeTextEl) btnCopyShareCodeTextEl.textContent = t('copy_code');
 
         renderParticipantsList();
         renderParticipantMarkers();
@@ -1051,9 +1090,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     ` : ''}
                 </div>
-                <div class="text-right">
-                    <span class="text-[11px] uppercase tracking-wider text-[#4B5563] font-mono-tag">${t('group_arrival')}</span>
-                    <div class="font-mono-tag font-bold text-lg text-[#FF5722]">${activeOption.arrival_at_destination}</div>
+                <div class="text-right flex flex-col items-end gap-1.5">
+                    <div>
+                        <span class="text-[11px] uppercase tracking-wider text-[#4B5563] font-mono-tag">${t('group_arrival')}</span>
+                        <div class="font-mono-tag font-bold text-lg text-[#FF5722]">${activeOption.arrival_at_destination}</div>
+                    </div>
+                    <button type="button" id="btnGenerateShareCode"
+                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-orange-50 hover:bg-orange-100 text-[#FF5722] border border-orange-200 transition-all cursor-pointer shadow-sm">
+                        <span>🔗</span>
+                        <span id="btnGenerateShareCodeText">${t('generate_code')}</span>
+                    </button>
                 </div>
             </div>
 
@@ -1066,6 +1112,52 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
         `;
+
+        const btnGen = document.getElementById('btnGenerateShareCode');
+        if (btnGen) {
+            btnGen.addEventListener('click', async () => {
+                const btnGenText = document.getElementById('btnGenerateShareCodeText');
+                if (btnGenText) btnGenText.textContent = t('generating_code');
+                btnGen.disabled = true;
+
+                try {
+                    const response = await fetch('/api/share-plan', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                        },
+                        body: JSON.stringify({
+                            option: activeOption,
+                            destination: destination,
+                            participants: participants.map(p => ({
+                                name: p.name,
+                                lat: p.lat,
+                                lon: p.lon,
+                                has_car: p.has_car,
+                                color: p.color,
+                                pickup_passengers: p.pickup_passengers || []
+                            }))
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (!response.ok) {
+                        showError(data.message || 'Failed to generate share code.');
+                        return;
+                    }
+
+                    showShareModal(data.code);
+                } catch (err) {
+                    console.error('Error sharing route:', err);
+                    showError(err.message || t('network_err'));
+                } finally {
+                    if (btnGenText) btnGenText.textContent = t('generate_code');
+                    btnGen.disabled = false;
+                }
+            });
+        }
 
         renderOptionRoutes(activeOption);
     }
@@ -1161,6 +1253,195 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'walk': return '#9CA3AF';
             default: return '#6B7280';
         }
+    }
+
+    // Share Code Modal & Route Loading Integration
+    const shareCodeModal = document.getElementById('shareCodeModal');
+    const btnCloseShareModal = document.getElementById('btnCloseShareModal');
+    const shareModalCodeDisplay = document.getElementById('shareModalCodeDisplay');
+    const btnCopyShareCode = document.getElementById('btnCopyShareCode');
+    const btnCopyShareCodeText = document.getElementById('btnCopyShareCodeText');
+    const inputShareCode = document.getElementById('inputShareCode');
+    const btnLoadShareCode = document.getElementById('btnLoadShareCode');
+
+    let currentSharedCode = '';
+
+    /**
+     * Copy text to clipboard with a fallback for non-HTTPS contexts (e.g. .test domain).
+     */
+    async function copyToClipboard(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+        } else {
+            // Fallback: create a temporary textarea and use execCommand
+            const el = document.createElement('textarea');
+            el.value = text;
+            el.style.position = 'fixed';
+            el.style.left = '-9999px';
+            el.style.top = '-9999px';
+            document.body.appendChild(el);
+            el.focus();
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+        }
+    }
+
+    function showShareModal(code) {
+        currentSharedCode = code;
+        if (shareModalCodeDisplay) shareModalCodeDisplay.textContent = code;
+        if (shareCodeModal) {
+            shareCodeModal.classList.remove('hidden');
+            shareCodeModal.classList.add('flex');
+        }
+    }
+
+    function closeShareModal() {
+        if (shareCodeModal) {
+            shareCodeModal.classList.add('hidden');
+            shareCodeModal.classList.remove('flex');
+        }
+    }
+
+    if (btnCloseShareModal) {
+        btnCloseShareModal.addEventListener('click', closeShareModal);
+    }
+
+    if (shareCodeModal) {
+        shareCodeModal.addEventListener('click', (e) => {
+            if (e.target === shareCodeModal) {
+                closeShareModal();
+            }
+        });
+    }
+
+    if (btnCopyShareCode) {
+        btnCopyShareCode.addEventListener('click', async () => {
+            if (!currentSharedCode) return;
+            try {
+                await copyToClipboard(currentSharedCode);
+                if (btnCopyShareCodeText) {
+                    const original = t('copy_code');
+                    btnCopyShareCodeText.textContent = t('code_copied');
+                    setTimeout(() => {
+                        btnCopyShareCodeText.textContent = original;
+                    }, 2000);
+                }
+            } catch (err) {
+                console.error('Failed to copy code:', err);
+            }
+        });
+    }
+
+    async function loadSharedPlan(code) {
+        const cleanCode = (code || '').trim().toUpperCase();
+        if (!cleanCode) {
+            showError(t('code_empty'));
+            return;
+        }
+
+        const btnLoadText = document.getElementById('btnLoadShareCodeText');
+        const originalText = btnLoadText ? btnLoadText.textContent : t('load_code_btn');
+        if (btnLoadText) btnLoadText.textContent = '...';
+        if (btnLoadShareCode) btnLoadShareCode.disabled = true;
+
+        try {
+            const response = await fetch(`/api/share-plan/${encodeURIComponent(cleanCode)}`, {
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                showError(t('code_not_found'));
+                return;
+            }
+
+            const data = await response.json();
+            if (!data.option) {
+                showError(t('code_not_found'));
+                return;
+            }
+
+            // Restore participants from the shared plan so colors and markers render correctly.
+            // We merge saved participants (which include colors) with an auto-generated fallback
+            // for any participant names present in itineraries but not in the saved list.
+            const savedParticipants = Array.isArray(data.participants) ? data.participants : [];
+            const itineraryNames = (data.option.itineraries || []).map(it => it.participant);
+            const restoredParticipants = itineraryNames.map((name, idx) => {
+                const saved = savedParticipants.find(p => p.name === name);
+                return {
+                    id: 'shared_' + idx,
+                    name: name,
+                    lat: saved?.lat || 0,
+                    lon: saved?.lon || 0,
+                    has_car: saved?.has_car || false,
+                    color: saved?.color || participantColors[idx % participantColors.length],
+                    pickup_passengers: saved?.pickup_passengers || [],
+                    locationName: null
+                };
+            });
+
+            // Replace participants state with restored list so getParticipantColor() works
+            participants = restoredParticipants;
+
+            // Show participant markers on the map (only for those with valid coordinates)
+            participantLayer.clearLayers();
+            restoredParticipants.forEach(p => {
+                if (p.lat && p.lon) {
+                    L.marker([p.lat, p.lon], {
+                        icon: createParticipantIcon(p.name, p.color, p.has_car)
+                    }).addTo(participantLayer)
+                        .bindPopup(`<strong>${escapeHtml(p.name)}</strong><br>${p.has_car ? '🚗' : '🚶'}`);
+                }
+            });
+            document.getElementById('participantCount').textContent = restoredParticipants.length;
+
+            // Load and display the option (routes + meeting points + drawer)
+            currentOptions = [data.option];
+            selectedOptionIndex = 0;
+            displayResults();
+
+            // Update destination marker if destination info is stored
+            if (data.destination && data.destination.lat && data.destination.lon) {
+                destination.name = data.destination.name || destination.name;
+                destination.lat = data.destination.lat;
+                destination.lon = data.destination.lon;
+                updateDestinationMarker();
+            }
+
+            if (inputShareCode) inputShareCode.value = cleanCode;
+            if (errorBox) errorBox.classList.add('hidden');
+
+        } catch (err) {
+            console.error('Error loading shared plan:', err);
+            showError(t('network_err'));
+        } finally {
+            if (btnLoadText) btnLoadText.textContent = originalText;
+            if (btnLoadShareCode) btnLoadShareCode.disabled = false;
+        }
+    }
+
+    if (btnLoadShareCode) {
+        btnLoadShareCode.addEventListener('click', () => {
+            if (inputShareCode) loadSharedPlan(inputShareCode.value);
+        });
+    }
+
+    if (inputShareCode) {
+        inputShareCode.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                loadSharedPlan(inputShareCode.value);
+            }
+        });
+    }
+
+    // Auto-load route if ?code= parameter is in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const codeParam = urlParams.get('code');
+    if (codeParam) {
+        loadSharedPlan(codeParam);
     }
 
     // Initialize Default State & Apply Language

@@ -1,39 +1,38 @@
-# Graph Report - Project  (2026-11-21)
+# Graph Report - Project  (2026-11-23)
 
 ## Corpus Check
-- 129 files · ~68,578 words
+- 132 files · ~59,175 words
 - Verdict: corpus is large enough that graph structure adds value.
-- Unclassified: 22 file(s) not represented in the graph (top: (none) 18, .example 1, .xml 1)
+- Unclassified: 23 file(s) not represented in the graph (top: (none) 19, .example 1, .xml 1)
 
 ## Summary
-- 971 nodes · 1502 edges · 75 communities (51 shown, 24 thin omitted)
-- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 46 edges (avg confidence: 0.85)
+- 900 nodes · 1411 edges · 82 communities (51 shown, 31 thin omitted)
+- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 68 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `1ea99ce6`
+- Built from commit: `e3d3cdbb`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- Route Search History
-- TestCase
+- AppServiceProvider.php
+- Illuminate\Foundation\Testing\RefreshDatabase
 - Carpool & Meeting Point Routing
-- GTFS Calendar & Schedules
+- Illuminate\Database\Schema\Blueprint
 - PHP Dependencies & Autoloading
-- MapController.php
-- Transit Agency & Planning Runs
+- App\Http\Controllers\PlanController
+- SharedPlan
 - GTFS Import & Feeds
 - Agent & Coding Guidelines
 - Carpool & Meeting Point Routing
-- Planning & Map Controllers
+- App\Http\Controllers\MapController
 - Frontend Build & Tailwind CSS
 - Transit Stops & Routes Model
-- CalendarDate
-- Transitive Closure & Shortest Paths
-- Authentication & User Management
-- Illuminate\Console\Command
-- Illuminate\Support\Facades\Artisan
+- Illuminate\Database\Eloquent\Model
+- PlanRequest
+- User
+- Illuminate\Database\Migrations\Migration
 - Authentication & User Management
 - Agent & Coding Guidelines
 - Architecture Best Practices / Depend on 
@@ -45,7 +44,7 @@
 - Database Migrations
 - Back Off Transient Failures / Batch Jobs
 - Carpool and planning contract / Change L
-- Controller / Controller
+- bootstrap/app.php
 - Caching Best Practices / Configure Failo
 - Add Indexes for Measured Query Patterns 
 - Apply Global Scopes Sparingly / Cast Dat
@@ -66,102 +65,97 @@
 - Database / Fakes, Mocks, and Determinism
 - Common Errors / Global Fakes
 - Assertions / Coverage
-- Stop
+- 2026_10_23_133919_create_transport_feed_metadata_tables.php
 - Configuration Best Practices / config
 - File Layout / Grouping
 - Data Providers / Each Test Makes Its Own
 - Consistency First / How to Apply
 - PHPUnit\Framework\TestCase / ExampleTest
 - copilot-instructions.md
-- PlanApiTest
+- 0011_01_01_000000_create_users_table.php
 - ProcessPlanningRun.php
-- ConnectionScan
-- Illuminate\Http\Request
-- PlanRequest
-- TransitiveClosure
-- DemoScenarioTest
-- GtfsNormalizationTest
+- 0031_01_01_000002_create_jobs_table.php
+- 0021_01_01_000001_create_cache_table.php
+- 2026_10_22_132627_add_calendar_feed_service_unique_index.php
+- 2026_10_24_155700_add_transfer_endpoint_feeds.php
+- 2026_10_25_172500_add_calendar_date_uniqueness.php
+- Stop
+- 2026_11_23_093724_add_participants_to_shared_plans_table.php
+- 2026_11_23_095054_add_expires_at_to_shared_plans_table.php
+- StopSearchController
 
 ## God Nodes (most connected - your core abstractions)
-1. `RouteSearchController` - 58 edges
-2. `ImportGtfs` - 28 edges
-3. `TestCase` - 20 edges
-4. `Stop` - 20 edges
-5. `MeetingPointFinder` - 16 edges
-6. `ItineraryPlanner` - 14 edges
-7. `CarAssignment` - 12 edges
-8. `TravelTimeProvider` - 12 edges
-9. `PlanApiTest` - 11 edges
-10. `Calendar` - 11 edges
+1. `ImportGtfs` - 28 edges
+2. `MeetingPointFinder` - 19 edges
+3. `TestCase` - 18 edges
+4. `ConnectionScan` - 18 edges
+5. `Stop` - 18 edges
+6. `ItineraryPlanner` - 17 edges
+7. `SharedPlan` - 13 edges
+8. `CarAssignment` - 12 edges
+9. `displayResults()` - 11 edges
+10. `PlanApiTest` - 11 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `RouteSearchController` --inherits--> `Controller`  [EXTRACTED]
-  reference/RouteSearchController.php → app/Http/Controllers/Controller.php
-- `SharedVehicleController` --inherits--> `Controller`  [EXTRACTED]
-  reference/SharedVehicleController.php → app/Http/Controllers/Controller.php
 - `CarAssignmentTest` --references--> `CarAssignment`  [EXTRACTED]
   tests/Unit/CarAssignmentTest.php → app/Services/Planning/CarAssignment.php
-- `DemoScenarioTest` --inherits--> `TestCase`  [EXTRACTED]
-  tests/Feature/DemoScenarioTest.php → tests/TestCase.php
-- `GtfsNormalizationTest` --inherits--> `TestCase`  [EXTRACTED]
-  tests/Feature/GtfsNormalizationTest.php → tests/TestCase.php
+- `{closure#1}()` --references--> `Stop`  [EXTRACTED]
+  app/Services/Planning/PlanningDataset.php → app/Models/Stop.php
+- `HaversineTravelTime` --implements--> `TravelTimeProvider`  [EXTRACTED]
+  app/Services/Routing/HaversineTravelTime.php → app/Services/Routing/TravelTimeProvider.php
+- `{closure#2}()` --references--> `Route`  [EXTRACTED]
+  app/Services/Planning/PlanningDataset.php → app/Models/Route.php
+- `MapController` --inherits--> `Controller`  [EXTRACTED]
+  app/Http/Controllers/MapController.php → app/Http/Controllers/Controller.php
 
 ## Import Cycles
 - None detected.
 
-## Communities (75 total, 24 thin omitted)
+## Communities (82 total, 31 thin omitted)
 
-### Community 0 - "Route Search History"
-Cohesion: 0.07
-Nodes (6): {closure#19}(), {closure#22}(), {closure#25}(), {closure#34}(), {closure#4}(), RouteSearchController
-
-### Community 1 - "TestCase"
-Cohesion: 0.17
-Nodes (6): ExampleTest, ImportCarParksTest, StopSearchTest, TestCase, ConnectionScanTest, TravelTimeProviderTest
+### Community 1 - "Illuminate\Foundation\Testing\RefreshDatabase"
+Cohesion: 0.05
+Nodes (15): BuildStaticMatrix, BuildTransfers, ImportCarParks, TransitiveClosure, DemoScenarioTest, ExampleTest, GtfsNormalizationTest, ImportCarParksTest (+7 more)
 
 ### Community 2 - "Carpool & Meeting Point Routing"
 Cohesion: 0.06
-Nodes (11): BuildTransfers, AppServiceProvider, CarAssignment, {closure#3}(), ItineraryPlanner, MeetingPointFinder, PlanningDataset, HaversineTravelTime (+3 more)
+Nodes (11): CarAssignment, {closure#2}(), {closure#3}(), {closure#2}(), ItineraryPlanner, MeetingPointFinder, PlanningDataset, ConnectionScan (+3 more)
 
-### Community 3 - "GTFS Calendar & Schedules"
-Cohesion: 0.06
-Nodes (31): {closure#1}(), {closure#2}(), {closure#3}(), {closure#1}(), {closure#2}(), {closure#1}(), {closure#2}(), {closure#3}() (+23 more)
+### Community 3 - "Illuminate\Database\Schema\Blueprint"
+Cohesion: 0.24
+Nodes (11): {closure#1}(), {closure#10}(), {closure#11}(), {closure#2}(), {closure#3}(), {closure#4}(), {closure#5}(), {closure#6}() (+3 more)
 
 ### Community 4 - "PHP Dependencies & Autoloading"
 Cohesion: 0.04
 Nodes (48): pestphp/pest-plugin, php-http/discovery, autoload, autoload-dev, psr-4, psr-4, config, allow-plugins (+40 more)
 
-### Community 5 - "MapController.php"
-Cohesion: 0.14
-Nodes (4): Controller, MapController, PlanController, StopSearchController
+### Community 5 - "App\Http\Controllers\PlanController"
+Cohesion: 0.25
+Nodes (3): Controller, PlanController, SharePlanController
 
-### Community 7 - "Transit Agency & Planning Runs"
-Cohesion: 0.13
-Nodes (4): Agency, StopTime, Transfer, Trip
+### Community 7 - "SharedPlan"
+Cohesion: 0.19
+Nodes (3): {closure#1}(), SharedPlan, SharedPlanFactory
 
 ### Community 9 - "Agent & Coding Guidelines"
 Cohesion: 0.07
 Nodes (26): APIs & Eloquent Resources, Application Structure & Architecture, Artisan, Conventions, Deployment, Do Things the Laravel Way, Documentation Files, Foundational Context (+18 more)
 
 ### Community 10 - "Carpool & Meeting Point Routing"
-Cohesion: 0.18
-Nodes (20): addParticipant(), applyLanguage(), createDestinationIcon(), createMeetingPointIcon(), createParticipantIcon(), createPickupIcon(), displayResults(), escapeHtml() (+12 more)
-
-### Community 11 - "Planning & Map Controllers"
-Cohesion: 0.15
-Nodes (6): BikeStation, CandidatePoint, CarPark, CarShareStation, PlanningRun, Shape
+Cohesion: 0.16
+Nodes (23): addParticipant(), applyLanguage(), createDestinationIcon(), createMeetingPointIcon(), createParticipantIcon(), createPickupIcon(), displayResults(), escapeHtml() (+15 more)
 
 ### Community 12 - "Frontend Build & Tailwind CSS"
 Cohesion: 0.13
 Nodes (20): devDependencies, concurrently@^10.0.3, laravel-vite-plugin@^3.1, tailwindcss@^4.0.0, @tailwindcss/vite@^4.0.0, vite@^8.0.0, optionalDependencies, @laravel/multiplex@^0.4.1 (+12 more)
 
-### Community 15 - "Transitive Closure & Shortest Paths"
-Cohesion: 0.12
-Nodes (16): 1. What to build, 2. User interface, 3. Data to bundle (in `storage/app/data/`), 4. Configuration constants (`config/mobility.php`), 5. Data model, 6.1 Static matrix and transitive closure (`TransitiveClosure`), 6.2 Transit earliest arrival (`ConnectionScan`), 6.3 Per-participant access (`ItineraryPlanner::reach`) (+8 more)
+### Community 14 - "Illuminate\Database\Eloquent\Model"
+Cohesion: 0.06
+Nodes (16): Agency, BikeStation, CalendarDate, CandidatePoint, CarPark, CarShareStation, PlanningRun, Route (+8 more)
 
-### Community 17 - "Illuminate\Console\Command"
-Cohesion: 0.27
-Nodes (3): BuildStaticMatrix, ImportCarParks, ImportParkingSpotsCommand
+### Community 16 - "User"
+Cohesion: 0.10
+Nodes (4): User, UserFactory, DatabaseSeeder, DemoScenarioSeeder
 
 ### Community 19 - "Authentication & User Management"
 Cohesion: 0.17
@@ -176,7 +170,7 @@ Cohesion: 0.17
 Nodes (11): Architecture Best Practices, Depend on Contracts at Boundaries, Extract Focused Business Operations, Follow Framework Conventions, Inject Required Dependencies, Specify a Deterministic Sort Order, Use Atomic Locks for Race Conditions, Use `Concurrency::run()` for Parallel Execution (+3 more)
 
 ### Community 22 - "Authentication & User Management"
-Cohesion: 0.18
+Cohesion: 0.17
 Nodes (11): Apply Cross-Site Request Forgery Protection, Audit Dependencies, Authorize Protected Actions, Bind Query Parameters, Control Mass Assignment, Encrypt Sensitive Attributes When Appropriate, Escape Output in Its Context, Keep Secrets Out of Application Code (+3 more)
 
 ### Community 23 - "Frontend Build & Tailwind CSS"
@@ -188,7 +182,7 @@ Cohesion: 0.18
 Nodes (10): Colors, Components, Composition, Guardrails, Layout, Motion, Overview, Sentinel - Better Business Decisions (+2 more)
 
 ### Community 25 - "Advanced Query Best Practices / Combine "
-Cohesion: 0.20
+Cohesion: 0.22
 Nodes (9): Advanced Query Best Practices, Combine Related Counts with Conditional Aggregates, Compare `whereHas()` with an `IN` Subquery, Consider a Correlated Subquery for Has-Many Ordering, Create Dynamic Relationships with a Subquery Foreign Key, Design Composite Indexes for the Query, Measure Two Simple Queries Against One Complex Query, Reuse Loaded Parent Models with `setRelation()` (+1 more)
 
 ### Community 26 - "Cache Event Discovery During Production "
@@ -200,12 +194,16 @@ Cohesion: 0.20
 Nodes (9): Define Foreign-Key Constraints Deliberately, Design Indexes for Real Queries, Generate Migrations with Artisan, Keep Migrations Focused, Make Rollbacks Honest, Migration Best Practices, Mirror Defaults Only When Unsaved Models Need Them, Stage Changes That Affect Existing Rows (+1 more)
 
 ### Community 28 - "Back Off Transient Failures / Batch Jobs"
-Cohesion: 0.20
+Cohesion: 0.22
 Nodes (9): Back Off Transient Failures, Batch Jobs for Group Coordination, Configure Time-Based Retry Limits Deliberately, Handle Terminal Failure When Needed, Keep Reservation Time Longer Than Execution Time, Queue and Job Best Practices, Rate Limit External Calls, Use Horizon for Redis Queue Operations (+1 more)
 
 ### Community 29 - "Carpool and planning contract / Change L"
 Cohesion: 0.20
 Nodes (9): Carpool and planning contract, Change Log, Completed, Feed-qualified routing, GBFS and parking prototype, GTFS import behavior, GTFS normalization and import, Planned from now (+1 more)
+
+### Community 30 - "bootstrap/app.php"
+Cohesion: 0.33
+Nodes (3): {closure#1}(), {closure#2}(), {closure#3}()
 
 ### Community 31 - "Caching Best Practices / Configure Failo"
 Cohesion: 0.22
@@ -256,7 +254,7 @@ Cohesion: 0.29
 Nodes (6): Keep Controllers Focused on HTTP Concerns, Organize Controllers Around Resources, Routing and Controller Best Practices, Scope Nested Bindings, Use Implicit Route Model Binding, Use Resource Routes for Resourceful Actions
 
 ### Community 43 - "Agent & Coding Guidelines"
-Cohesion: 0.29
+Cohesion: 0.25
 Nodes (5): Consistency First, Decision Rules, How to Apply, Laravel Best Practices, Rule Index
 
 ### Community 44 - "Convention and Style Best Practices / Fo"
@@ -287,9 +285,9 @@ Nodes (6): Common Errors, Global Fakes, How to Find a Slow Test, How to Run the 
 Cohesion: 0.29
 Nodes (6): Assertions, Coverage, Data and Determinism, Names and Structure, Reviewing Tests, Test Value
 
-### Community 51 - "Stop"
-Cohesion: 0.24
-Nodes (7): {closure#1}(), {closure#2}(), {closure#3}(), Route, Stop, {closure#1}(), {closure#2}()
+### Community 51 - "2026_10_23_133919_create_transport_feed_metadata_tables.php"
+Cohesion: 0.25
+Nodes (5): {closure#1}(), {closure#2}(), {closure#3}(), {closure#4}(), {closure#5}()
 
 ### Community 52 - "Configuration Best Practices / config"
 Cohesion: 0.33
@@ -307,33 +305,37 @@ Nodes (4): Data Providers, Each Test Makes Its Own Data, Factories and Test Data
 Cohesion: 0.40
 Nodes (5): Consistency First, How to Apply, Rule Index, Testing Best Practices, What to Test
 
-### Community 69 - "ConnectionScan"
-Cohesion: 0.35
-Nodes (3): {closure#3}(), {closure#4}(), ConnectionScan
-
-### Community 70 - "Illuminate\Http\Request"
-Cohesion: 0.25
+### Community 67 - "0011_01_01_000000_create_users_table.php"
+Cohesion: 0.33
 Nodes (3): {closure#1}(), {closure#2}(), {closure#3}()
 
+### Community 69 - "0031_01_01_000002_create_jobs_table.php"
+Cohesion: 0.33
+Nodes (3): {closure#1}(), {closure#2}(), {closure#3}()
+
+### Community 75 - "Stop"
+Cohesion: 0.21
+Nodes (5): {closure#1}(), {closure#2}(), {closure#3}(), Calendar, Stop
+
 ## Knowledge Gaps
-- **253 isolated node(s):** `1. What to build`, `2. User interface`, `3. Data to bundle (in `storage/app/data/`)`, `4. Configuration constants (`config/mobility.php`)`, `5. Data model` (+248 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 476 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **24 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **239 isolated node(s):** `A. Validation & HTTP input`, `B. Controllers & routing`, `C. Authorization`, `D. Eloquent & models`, `E. Architecture & organization` (+234 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 430 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **31 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Stop` connect `Stop` to `TestCase`, `Carpool & Meeting Point Routing`, `MapController.php`, `Route Search History`, `Transit Agency & Planning Runs`, `Planning & Map Controllers`, `Transit Stops & Routes Model`, `Illuminate\Console\Command`?**
-  _High betweenness centrality (0.057) - this node is a cross-community bridge._
-- **What connects `1. What to build`, `2. User interface`, `3. Data to bundle (in `storage/app/data/`)` to the rest of the system?**
-  _253 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Route Search History` be split into smaller, more focused modules?**
-  _Cohesion score 0.07344632768361582 - nodes in this community are weakly interconnected._
-- **Why does `RouteSearchController` connect `Route Search History` to `Illuminate\Http\Request`, `MapController.php`, `Route Search History`?**
-  _High betweenness centrality (0.051) - this node is a cross-community bridge._
+- **Why does `Stop` connect `Stop` to `Illuminate\Foundation\Testing\RefreshDatabase`, `Carpool & Meeting Point Routing`, `App\Http\Controllers\MapController`, `Illuminate\Database\Eloquent\Model`?**
+  _High betweenness centrality (0.030) - this node is a cross-community bridge._
+- **What connects `A. Validation & HTTP input`, `B. Controllers & routing`, `C. Authorization` to the rest of the system?**
+  _239 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `Illuminate\Foundation\Testing\RefreshDatabase` be split into smaller, more focused modules?**
+  _Cohesion score 0.05048076923076923 - nodes in this community are weakly interconnected._
+- **Why does `ImportGtfs` connect `GTFS Import & Feeds` to `Illuminate\Foundation\Testing\RefreshDatabase`, `Illuminate\Database\Eloquent\Model`?**
+  _High betweenness centrality (0.028) - this node is a cross-community bridge._
 - **Should `Carpool & Meeting Point Routing` be split into smaller, more focused modules?**
-  _Cohesion score 0.05860805860805861 - nodes in this community are weakly interconnected._
-- **Why does `ImportGtfs` connect `GTFS Import & Feeds` to `Illuminate\Console\Command`, `Transit Agency & Planning Runs`?**
-  _High betweenness centrality (0.027) - this node is a cross-community bridge._
-- **Should `GTFS Calendar & Schedules` be split into smaller, more focused modules?**
-  _Cohesion score 0.058469945355191254 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05854049719326383 - nodes in this community are weakly interconnected._
+- **Why does `ConnectionScan` connect `Carpool & Meeting Point Routing` to `AppServiceProvider.php`, `Illuminate\Foundation\Testing\RefreshDatabase`, `Illuminate\Database\Eloquent\Model`?**
+  _High betweenness centrality (0.025) - this node is a cross-community bridge._
+- **Should `PHP Dependencies & Autoloading` be split into smaller, more focused modules?**
+  _Cohesion score 0.04081632653061224 - nodes in this community are weakly interconnected._

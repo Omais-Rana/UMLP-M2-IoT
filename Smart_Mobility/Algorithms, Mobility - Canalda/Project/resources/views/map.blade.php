@@ -98,6 +98,20 @@
         </div>
 
         <div class="flex items-center gap-3">
+            <!-- Enter Code to load shared route -->
+            <div class="flex items-center bg-[#F3F4F6] border border-[#E5E7EB] rounded-lg px-2 py-1 focus-within:border-[#FF5722] focus-within:bg-white transition-all shadow-sm">
+                <svg class="w-3.5 h-3.5 text-gray-400 mr-1.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+                <input id="inputShareCode" type="text" placeholder="Enter code..."
+                    class="bg-transparent text-xs outline-none w-24 sm:w-28 font-mono-tag uppercase text-[#111827] placeholder-gray-400 font-semibold"
+                    maxlength="10" autocomplete="off" spellcheck="false">
+                <button id="btnLoadShareCode" type="button"
+                    class="text-xs font-semibold px-2 py-0.5 rounded bg-[#FF5722] hover:bg-[#E64A19] text-white shadow-sm transition-all ml-1 cursor-pointer">
+                    <span id="btnLoadShareCodeText">Enter</span>
+                </button>
+            </div>
+
             <!-- Language Switcher (EN / FR) -->
             <div class="flex items-center bg-[#E5E7EB] p-0.5 rounded-lg text-xs font-mono-tag" role="group"
                 aria-label="Language switcher">
@@ -360,6 +374,42 @@
                     <span class="animate-pulse text-xs text-[#FF5722]">Working…</span>
                 </div>
                 <div id="planningParticipants" class="grid gap-3 sm:grid-cols-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share Code Modal -->
+    <div id="shareCodeModal"
+        class="hidden fixed inset-0 z-[600] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white border border-[#E5E7EB] rounded-2xl shadow-2xl max-w-sm w-full p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-full bg-orange-100 text-[#FF5722] flex items-center justify-center text-sm font-bold">🔗</span>
+                    <h3 class="font-display font-bold text-base text-[#111827]" id="shareModalTitle">Share Planned Route</h3>
+                </div>
+                <button id="btnCloseShareModal" type="button" class="text-gray-400 hover:text-gray-600 text-lg p-1 cursor-pointer">&times;</button>
+            </div>
+            <p class="text-xs text-[#4B5563]" id="shareModalDesc">
+                Anyone with this code can load and view this planned route directly.
+            </p>
+            <div class="bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl p-3 text-center space-y-1">
+                <div class="text-[10px] uppercase font-mono-tag tracking-wider text-gray-500" id="shareModalCodeLabel">Share Code</div>
+                <div class="font-mono-tag font-bold text-2xl tracking-wider text-[#FF5722]" id="shareModalCodeDisplay">------</div>
+                <div class="text-[11px] text-[#6B7280] font-medium flex items-center justify-center gap-1.5 pt-0.5" id="shareModalExpires">
+                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span id="shareModalExpiresText">Expires in 30 minutes</span>
+                </div>
+            </div>
+            <div class="space-y-2">
+                <button id="btnCopyShareCode" type="button"
+                    class="w-full py-2 px-3 rounded-lg text-xs font-semibold bg-[#FF5722] hover:bg-[#E64A19] text-white transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    <span id="btnCopyShareCodeText">Copy Code</span>
+                </button>
             </div>
         </div>
     </div>
